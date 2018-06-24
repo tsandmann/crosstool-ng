@@ -37,3 +37,4 @@ testing/docker/build-*
 .build-all/
 # .. and release creation
 release/
+kconfig/*conf.dSYM
