@@ -74,6 +74,7 @@ for d in            \
     LOCAL_TARBALLS  \
     WORK            \
     PREFIX          \
+    BUILD_TOP       \
     INSTALL         \
     ; do
         eval dir="\${CT_${d}_DIR}"
@@ -86,6 +87,17 @@ for d in            \
                 ;;
             *,*)
                 CT_Abort "'CT_${d}_DIR'='${dir}' contains a comma in it.\nDon't use commas in paths, it breaks things."
+                ;;
+        esac
+        case "${dir}" in
+            /*)
+                # Absolute path, okay
+                ;;
+            *)
+                # Relative path from CT_TOP_DIR, make absolute
+                eval CT_${d}_DIR="${CT_TOP_DIR}/${dir}"
+                # Having .. inside CT_PREFIX breaks relocatability.
+                CT_SanitizeVarDir CT_${d}_DIR
                 ;;
         esac
 done
@@ -196,7 +208,7 @@ CT_TARBALLS_DIR="${CT_WORK_DIR}/tarballs"
 CT_COMMON_SRC_DIR="${CT_WORK_DIR}/src"
 CT_SRC_DIR="${CT_BUILD_TOP_DIR}/src"
 CT_BUILDTOOLS_PREFIX_DIR="${CT_BUILD_TOP_DIR}/buildtools"
-CT_STATE_DIR="${CT_WORK_DIR}/${CT_TARGET}/state"
+CT_STATE_DIR="${CT_BUILD_TOP_DIR}/state"
 # Note about HOST_COMPLIBS_DIR: it's always gonna be in the buildtools dir, or a
 # sub-dir. So we won't have to save/restore it, not even create it.
 # In case of cross or native, host-complibs are used for build-complibs;
@@ -315,9 +327,6 @@ CT_DoExecLog ALL chmod -R u+w "${CT_PREFIX_DIR}"
 
 # Setting up the rest of the environment only if not restarting
 if [ -z "${CT_RESTART}" ]; then
-    # Having .. inside CT_PREFIX breaks relocatability.
-    CT_SanitizeVarDir CT_PREFIX_DIR
-
     case "${CT_SYSROOT_NAME}" in
         "")     CT_SYSROOT_NAME="sysroot";;
         .)      CT_Abort "Sysroot name is set to '.' which is forbidden";;

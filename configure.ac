@@ -125,6 +125,7 @@ CTNG_CHECK_PROGS_REQ([bzip2], [bzip2])
 CTNG_CHECK_PROGS_REQ([xz], [xz])
 CTNG_CHECK_PROGS_REQ([unzip], [unzip])
 CTNG_CHECK_PROGS_REQ([help2man], [help2man])
+CTNG_CHECK_PROGS_REQ([file], [file])
 
 # Not a fatal failure even if we have neither - the tarballs may
 # be provided in a local directory.
@@ -171,7 +172,7 @@ CTNG_PROG_VERSION_REQ_ANY([MAKE],
     [make_3_81_or_newer])
 
 # Check other companion tools that we may or may not build.
-CTNG_PROG_VERSION_REQ_STRICT([LIBTOOL],
+CTNG_PROG_VERSION([LIBTOOL],
     [GNU libtool >= 2.4],
     [libtool],
     [glibtool libtool],
