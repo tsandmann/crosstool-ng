@@ -2146,11 +2146,14 @@ CT_DoExtractPatch()
     if [ "${CT_TARGET_USE_OVERLAY}" = "y" -a ! -d "${CT_BUILD_DIR}/overlay" ]; then
         CT_DoExecLog ALL mkdir -p "${CT_BUILD_DIR}/overlay"
         overlay="${CT_OVERLAY_LOCATION}/${CT_ARCH}_${CT_OVERLAY_NAME:-overlay}"
-        ext=`CT_GetFileExtension "${overlay}"`
-        if [ ! -r "${overlay}${ext}" ]; then
-            CT_Abort "Overlay ${overlay} not found"
+        if [ -d "${overlay}" ]; then
+            CT_DoExecLog ALL cp -av "${overlay}/." "${CT_BUILD_DIR}/overlay"
+        else
+            if ! ext=`CT_GetFileExtension "${overlay}"`; then
+                CT_Abort "Overlay ${overlay} not found"
+            fi
+            CT_Extract "${overlay}${ext}" "${CT_BUILD_DIR}/overlay"
         fi
-        CT_Extract "${overlay}${ext}" "${CT_BUILD_DIR}/overlay"
     fi
 
     # Can use common location only if using non-custom source, only bundled patches
@@ -2396,3 +2399,28 @@ else
     CT_Error "Not found: paths.sh"
 fi
 . "${paths_sh_location}"
+
+CT_InstallCopyingInformation()
+{
+    local licfile
+    local dstdir
+
+    CT_DoLog EXTRA "Collect license information from: ${CT_SRC_DIR}"
+    CT_DoLog EXTRA "Put the license information to: ${CT_PREFIX_DIR}/share/licenses"
+
+    for licfile in $( find "${CT_SRC_DIR}" -follow -type f -a \( -name "COPYING*" -o -name "LICENSE*" \) ); do
+        dstdir="${licfile%/*}"
+        dstdir="${CT_PREFIX_DIR}/share/licenses${dstdir#${CT_SRC_DIR}}"
+        mkdir -p "${dstdir}"
+        CT_DoExecLog ALL cp -av "${licfile}" "${dstdir}/"
+    done
+
+    # Also add crosstool's information
+    for licfile in ${CT_LIB_DIR}/{COPYING*,LICENSE*,licenses.d}; do
+        dstdir="${CT_PREFIX_DIR}/share/licenses/crosstool-ng"
+        mkdir -p "${dstdir}"
+        CT_DoExecLog ALL cp -av "${licfile}" "${dstdir}/"
+    done
+
+    shopt -u nullglob
+}
