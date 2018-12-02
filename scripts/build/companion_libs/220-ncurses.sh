@@ -28,7 +28,8 @@ do_ncurses_for_build() {
           "--without-cxx" \
           "--without-cxx-binding" \
           "--without-ada" \
-          "--without-fallbacks" )
+          "--without-fallbacks" \
+          "--with-shared" )
     do_ncurses_backend host="${CT_BUILD}" \
                        destdir="${CT_BUILDTOOLS_PREFIX_DIR}" \
                        cflags="${CT_CFLAGS_FOR_BUILD}" \
