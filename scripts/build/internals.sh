@@ -144,5 +144,9 @@ do_finish() {
         CT_DoForceRmdir "${CT_DEBUGROOT_DIR}/"{,usr/}{,share/}{man,info}
     fi
 
+    # create nano c++ libs
+    CT_DoExecLog ALL cp -v "${CT_SYSROOT_DIR}/lib/libstdc++.a" "${CT_SYSROOT_DIR}/lib/libstdc++_nano.a"
+    CT_DoExecLog ALL cp -v "${CT_SYSROOT_DIR}/lib/libsupc++.a" "${CT_SYSROOT_DIR}/lib/libsupc++_nano.a"
+
     CT_EndStep
 }

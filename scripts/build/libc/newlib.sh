@@ -92,7 +92,7 @@ ENABLE_TARGET_OPTSPACE:target-optspace
         CT_LIBC_NEWLIB_TARGET_CFLAGS="${CT_LIBC_NEWLIB_TARGET_CFLAGS} -ffunction-sections -fdata-sections"
 
     [ "${CT_LIBC_NEWLIB_LTO}" = "y" ] && \
-        CT_LIBC_NEWLIB_TARGET_CFLAGS="${CT_LIBC_NEWLIB_TARGET_CFLAGS} -flto"
+        CT_LIBC_NEWLIB_TARGET_CFLAGS="${CT_LIBC_NEWLIB_TARGET_CFLAGS} -flto -ffat-lto-objects"
 
     cflags_for_target="${CT_ALL_TARGET_CFLAGS} ${CT_LIBC_NEWLIB_TARGET_CFLAGS}"
 
@@ -119,6 +119,7 @@ ENABLE_TARGET_OPTSPACE:target-optspace
 
     CT_DoLog EXTRA "Installing C library"
     CT_DoExecLog ALL make install
+    CT_DoExecLog ALL cp -v "${CT_SYSROOT_DIR}/lib/libc.a" "${CT_SYSROOT_DIR}/lib/libc_nano.a"
 
     if [ "${CT_BUILD_MANUALS}" = "y" ]; then
         local -a doc_dir="${CT_BUILD_DIR}/build-libc/${CT_TARGET}"
