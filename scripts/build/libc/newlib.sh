@@ -111,8 +111,26 @@ ENABLE_TARGET_OPTSPACE:target-optspace
     CT_DoExecLog ALL make ${CT_JOBSFLAGS}
 
     CT_DoLog EXTRA "Installing C library"
+    if [ "${CT_LIBC_NEWLIB_NANO_FORMATTED_IO}" = "y" ]; then
+      if [ -e "${CT_SYSROOT_DIR}/lib/libc.a" ]; then
+        CT_DoExecLog ALL mv -v "${CT_SYSROOT_DIR}/lib/libc.a" "${CT_SYSROOT_DIR}/lib/libc.a.bak"
+      fi
+      if [ -e "${CT_SYSROOT_DIR}/lib/libstdc++.a" ]; then
+        CT_DoExecLog ALL cp -v "${CT_SYSROOT_DIR}/lib/libstdc++.a" "${CT_SYSROOT_DIR}/lib/libstdc++.a.bak"
+      fi
+      if [ -e "${CT_SYSROOT_DIR}/lib/libsupc++.a" ]; then
+        CT_DoExecLog ALL cp -v "${CT_SYSROOT_DIR}/lib/libsupc++.a" "${CT_SYSROOT_DIR}/lib/libsupc++.a.bak"
+      fi
+    fi
+
     CT_DoExecLog ALL make install
-    CT_DoExecLog ALL cp -v "${CT_SYSROOT_DIR}/lib/libc.a" "${CT_SYSROOT_DIR}/lib/libc_nano.a"
+
+    if [ "${CT_LIBC_NEWLIB_NANO_FORMATTED_IO}" = "y" ]; then
+      CT_DoExecLog ALL mv -v "${CT_SYSROOT_DIR}/lib/libc.a" "${CT_SYSROOT_DIR}/lib/libc_nano.a"
+      if [ -e "${CT_SYSROOT_DIR}/lib/libc.a.bak" ]; then
+        CT_DoExecLog ALL mv -v "${CT_SYSROOT_DIR}/lib/libc.a.bak" "${CT_SYSROOT_DIR}/lib/libc.a"
+      fi
+    fi
 
     if [ "${CT_BUILD_MANUALS}" = "y" ]; then
         local -a doc_dir="${CT_BUILD_DIR}/build-libc/${CT_TARGET}"
