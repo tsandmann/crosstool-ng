@@ -99,10 +99,11 @@ do_expat_backend() {
         --host=${host}                                              \
         --prefix="${prefix}"                                        \
         --enable-static                                             \
+        --without-docbook                                           \
         "${extra_config[@]}"
 
     CT_DoLog EXTRA "Building expat"
-    CT_DoExecLog ALL make ${JOBSFLAGS}
+    CT_DoExecLog ALL make ${CT_JOBSFLAGS}
     CT_DoLog EXTRA "Installing expat"
     CT_DoExecLog ALL make install DESTDIR="${destdir}"
 }

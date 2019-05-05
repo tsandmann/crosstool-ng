@@ -19,6 +19,17 @@ config SAVE_TARBALLS
       If you say 'y' here, new downloaded tarballs will be saved in the
       directory you entered above.
 
+config TARBALLS_BUILDROOT_LAYOUT
+    bool "Prefer buildroot-style layout of the downloads"
+    help
+      Buildroot switched the layout of its downloads directory to place
+      files for each package into a subdirectory named after that package.
+      Enable this option to have crosstool-NG create similar layout.
+      If this option is set and the required archive is located in
+      the directory with a legacy, flat layout, the archive will be moved
+      into a subdirectory. If this is option is not set, subdirectories
+      will neither be checked nor used to store the downloads.
+
 config WORK_DIR
     string
     prompt "Working directory"
@@ -84,6 +95,15 @@ config BUILD_MANUALS
     help
       Build the PDF and HTML manuals for the main components such as
       binutils, GCC, GDB, and the C library.
+
+config INSTALL_LICENSES
+    bool "Install licenses"
+    default y
+    help
+      Collect the license files for all the components that went into
+      producing this toolchain (including the crosstool-NG itself)
+      and place them in /share/licenses directory within the prefix
+      directory.
 
 config PREFIX_DIR_RO
     bool
