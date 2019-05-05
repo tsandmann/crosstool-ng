@@ -971,7 +971,7 @@ do_gcc_backend() {
             # build script
             # INFO: if the host gcc is gcc-4.5 then presumably we could use -static-libstdc++,
             #       see http://gcc.gnu.org/ml/gcc-patches/2009-06/msg01635.html
-            host_libstdcxx_flags+=("-static-libgcc")
+            host_libstdcxx_flags+=("-static-libgcc -static-libstdc++")
             host_libstdcxx_flags+=("-Wl,-Bstatic,-lstdc++,-Bdynamic")
             host_libstdcxx_flags+=("-lm")
         fi
