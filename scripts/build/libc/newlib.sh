@@ -127,8 +127,12 @@ ENABLE_TARGET_OPTSPACE:target-optspace
 
     if [ "${CT_LIBC_NEWLIB_NANO_FORMATTED_IO}" = "y" ]; then
       CT_DoExecLog ALL mv -v "${CT_SYSROOT_DIR}/lib/libc.a" "${CT_SYSROOT_DIR}/lib/libc_nano.a"
+      CT_DoExecLog ALL mv -v "${CT_SYSROOT_DIR}/lib/libg.a" "${CT_SYSROOT_DIR}/lib/libg_nano.a"
       if [ -e "${CT_SYSROOT_DIR}/lib/libc.a.bak" ]; then
         CT_DoExecLog ALL mv -v "${CT_SYSROOT_DIR}/lib/libc.a.bak" "${CT_SYSROOT_DIR}/lib/libc.a"
+      fi
+      if [ -e "${CT_SYSROOT_DIR}/lib/libg.a.bak" ]; then
+        CT_DoExecLog ALL mv -v "${CT_SYSROOT_DIR}/lib/libg.a.bak" "${CT_SYSROOT_DIR}/lib/libg.a"
       fi
     fi
 
