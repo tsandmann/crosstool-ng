@@ -115,6 +115,9 @@ ENABLE_TARGET_OPTSPACE:target-optspace
       if [ -e "${CT_SYSROOT_DIR}/lib/libc.a" ]; then
         CT_DoExecLog ALL mv -v "${CT_SYSROOT_DIR}/lib/libc.a" "${CT_SYSROOT_DIR}/lib/libc.a.bak"
       fi
+      if [ -e "${CT_SYSROOT_DIR}/lib/libg.a" ]; then
+        CT_DoExecLog ALL mv -v "${CT_SYSROOT_DIR}/lib/libg.a" "${CT_SYSROOT_DIR}/lib/libg.a.bak"
+      fi
       if [ -e "${CT_SYSROOT_DIR}/lib/libstdc++.a" ]; then
         CT_DoExecLog ALL cp -v "${CT_SYSROOT_DIR}/lib/libstdc++.a" "${CT_SYSROOT_DIR}/lib/libstdc++.a.bak"
       fi
