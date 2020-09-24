@@ -1135,7 +1135,7 @@ CT_DoBuildTargetTuple()
         uClibc)      CT_TARGET_SYS=uclibc;;
         musl)        CT_TARGET_SYS=musl;;
         bionic)      CT_TARGET_SYS=android;;
-        none|newlib) CT_TARGET_SYS=elf;;
+        none|newlib|picolibc) CT_TARGET_SYS=elf;;
         *)
             # Keep empty for the libraries like mingw or avr-libc
             CT_TARGET_SYS=
@@ -2233,6 +2233,7 @@ CT_DoExtractPatch()
     local archive ext
     local -a patch_dirs
     local bundled_patch_dir
+    local bundled_common_patch_dir
     local local_patch_dir
     local overlay
 
@@ -2307,13 +2308,14 @@ CT_DoExtractPatch()
             CT_DoExecLog ALL touch "${src_dir}/.${basename}.patching"
 
             bundled_patch_dir="${CT_LIB_DIR}/packages/${pkg_dir}"
+            bundled_common_patch_dir="${CT_LIB_DIR}/packages/${pkg_name}"
             local_patch_dir="${CT_LOCAL_PATCH_DIR}/${pkg_dir}"
 
             case "${patch_order}" in
-                bundled)        patch_dirs=("${bundled_patch_dir}");;
+                bundled)        patch_dirs=("${bundled_patch_dir}" "${bundled_common_patch_dir}");;
                 local)          patch_dirs=("${local_patch_dir}");;
-                bundled,local)  patch_dirs=("${bundled_patch_dir}" "${local_patch_dir}");;
-                local,bundled)  patch_dirs=("${local_patch_dir}" "${bundled_patch_dir}");;
+                bundled,local)  patch_dirs=("${bundled_patch_dir}" "${bundled_common_patch_dir}" "${local_patch_dir}");;
+                local,bundled)  patch_dirs=("${local_patch_dir}" "${bundled_patch_dir}" "${bundled_common_patch_dir}");;
                 none)           patch_dirs=;;
             esac
 
