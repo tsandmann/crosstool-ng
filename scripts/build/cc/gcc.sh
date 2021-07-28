@@ -295,7 +295,8 @@ do_gcc_core_backend() {
     local enable_optspace
     local complibs
     local lang_list
-    local cflags cflags_for_build cflags_for_target
+    local cflags cflags_for_build cxxflags_for_build cflags_for_target cxxflags_for_target
+    local extra_cxxflags_for_target
     local ldflags
     local build_step
     local log_txt
@@ -395,6 +396,12 @@ do_gcc_core_backend() {
     else
         extra_config+=("--disable-__cxa_atexit")
     fi
+
+    case "${CT_CC_GCC_TM_CLONE_REGISTRY}" in
+        y) extra_config+=("--enable-tm-clone-registry");;
+        m) ;;
+        "") extra_config+=("--disable-tm-clone-registry");;
+    esac
 
     if [ -n "${CT_CC_GCC_ENABLE_CXX_FLAGS}" \
             -a "${mode}" = "baremetal" ]; then
@@ -580,6 +587,7 @@ do_gcc_core_backend() {
     # that ${cflags} may refer either to build or host CFLAGS; they are provided
     # by the caller.
     cflags_for_build="${CT_CFLAGS_FOR_BUILD}"
+    cxxflags_for_build="${CT_CXXFLAGS_FOR_BUILD}"
     cflags_for_target="${CT_TARGET_CFLAGS}"
 
     # Clang's default bracket-depth is 256, and building GCC
@@ -608,6 +616,19 @@ do_gcc_core_backend() {
         cflags_for_target="${cflags_for_target} -idirafter ${CT_HEADERS_DIR}"
     fi
 
+    # Assume '-O2' by default for building target libraries.
+    cflags_for_target="-g -O2 ${cflags_for_target}"
+
+    # Set target CXXFLAGS to CFLAGS if none is provided.
+    if [ -z "${cxxflags_for_target}" ]; then
+        cxxflags_for_target="${cflags_for_target}"
+    fi
+
+    # Append extra CXXFLAGS if provided.
+    if [ -n "${extra_cxxflags_for_target}" ]; then
+        cxxflags_for_target="${cxxflags_for_target} ${extra_cxxflags_for_target}"
+    fi
+
     # Use --with-local-prefix so older gccs don't look in /usr/local (http://gcc.gnu.org/PR10532).
     # Pass only user-specified CFLAGS/LDFLAGS in CFLAGS_FOR_TARGET/LDFLAGS_FOR_TARGET: during
     # the build of, for example, libatomic, GCC tried to compile multiple variants for runtime
@@ -617,11 +638,11 @@ do_gcc_core_backend() {
     CC_FOR_BUILD="${CT_BUILD}-gcc"                     \
     CFLAGS="${cflags}"                                 \
     CFLAGS_FOR_BUILD="${cflags_for_build}"             \
-    CXXFLAGS="${cflags}"                               \
-    CXXFLAGS_FOR_BUILD="${cflags_for_build}"           \
+    CXXFLAGS="${cflags} ${cxxflags_for_build}"         \
+    CXXFLAGS_FOR_BUILD="${cflags_for_build} ${cxxflags_for_build}" \
     LDFLAGS="${core_LDFLAGS[*]}"                       \
     CFLAGS_FOR_TARGET="${cflags_for_target}"           \
-    CXXFLAGS_FOR_TARGET="${cflags_for_target}"         \
+    CXXFLAGS_FOR_TARGET="${cxxflags_for_target}"       \
     LDFLAGS_FOR_TARGET="${CT_TARGET_LDFLAGS}"          \
     ${CONFIG_SHELL}                                    \
     "${CT_SRC_DIR}/gcc/configure"                      \
@@ -936,6 +957,10 @@ do_gcc_backend() {
     local lang_list
     local cflags
     local cflags_for_build
+    local cxxflags_for_build
+    local cflags_for_target
+    local cxxflags_for_target
+    local extra_cxxflags_for_target
     local ldflags
     local build_manuals
     local exec_prefix
@@ -997,6 +1022,12 @@ do_gcc_backend() {
     else
         extra_config+=("--disable-__cxa_atexit")
     fi
+
+    case "${CT_CC_GCC_TM_CLONE_REGISTRY}" in
+        y) extra_config+=("--enable-tm-clone-registry");;
+        m) ;;
+        "") extra_config+=("--disable-tm-clone-registry");;
+    esac
 
     if [ -n "${CT_CC_GCC_ENABLE_CXX_FLAGS}" ]; then
         extra_config+=("--enable-cxx-flags=${CT_CC_GCC_ENABLE_CXX_FLAGS}")
@@ -1200,8 +1231,10 @@ do_gcc_backend() {
 
     CT_DoLog DEBUG "Extra config passed: '${extra_config[*]}'"
 
-    # We may need to modify host/build CFLAGS separately below
+    # We may need to modify host/build/target CFLAGS separately below
     cflags_for_build="${cflags}"
+    cxxflags_for_build="${CT_CXXFLAGS_FOR_BUILD}"
+    cflags_for_target="${CT_TARGET_CFLAGS}"
 
     # Clang's default bracket-depth is 256, and building GCC
     # requires somewhere between 257 and 512.
@@ -1217,17 +1250,30 @@ do_gcc_backend() {
         fi
     fi
 
+    # Assume '-O2' by default for building target libraries.
+    cflags_for_target="-g -O2 ${cflags_for_target}"
+
+    # Set target CXXFLAGS to CFLAGS if none is provided.
+    if [ -z "${cxxflags_for_target}" ]; then
+        cxxflags_for_target="${cflags_for_target}"
+    fi
+
+    # Append extra CXXFLAGS if provided.
+    if [ -n "${extra_cxxflags_for_target}" ]; then
+        cxxflags_for_target="${cxxflags_for_target} ${extra_cxxflags_for_target}"
+    fi
+
     # NB: not using CT_ALL_TARGET_CFLAGS/CT_ALL_TARGET_LDFLAGS here!
     # See do_gcc_core_backend for explanation.
     CT_DoExecLog CFG                                   \
     CC_FOR_BUILD="${CT_BUILD}-gcc"                     \
     CFLAGS="${cflags}"                                 \
     CFLAGS_FOR_BUILD="${cflags_for_build}"             \
-    CXXFLAGS="${cflags}"                               \
-    CXXFLAGS_FOR_BUILD="${cflags_for_build}"           \
+    CXXFLAGS="${cflags} ${cxxflags_for_build}"         \
+    CXXFLAGS_FOR_BUILD="${cflags_for_build} ${cxxflags_for_build}" \
     LDFLAGS="${final_LDFLAGS[*]}"                      \
-    CFLAGS_FOR_TARGET="${CT_TARGET_CFLAGS}"            \
-    CXXFLAGS_FOR_TARGET="${CT_TARGET_CFLAGS}"          \
+    CFLAGS_FOR_TARGET="${cflags_for_target}"           \
+    CXXFLAGS_FOR_TARGET="${cxxflags_for_target}"       \
     LDFLAGS_FOR_TARGET="${CT_TARGET_LDFLAGS}"          \
     ${CONFIG_SHELL}                                    \
     "${CT_SRC_DIR}/gcc/configure"                      \
