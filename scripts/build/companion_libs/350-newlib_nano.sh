@@ -67,6 +67,9 @@ do_cc_libstdcxx_newlib_nano()
 	if [ "${CT_LIBC_NEWLIB_NANO_ENABLE_TARGET_OPTSPACE}" = "y" ]; then
 	    final_opts+=( "enable_optspace=yes" )
 	fi
+        if [ -n "${CT_NEWLIB_NANO_GCC_LIBSTDCXX_TARGET_CXXFLAGS}" ]; then
+            final_opts+=( "extra_cxxflags_for_target=${CT_NEWLIB_NANO_GCC_LIBSTDCXX_TARGET_CXXFLAGS}" )
+        fi
 
         if [ "${CT_BARE_METAL}" = "y" ]; then
             final_opts+=( "mode=baremetal" )
@@ -199,13 +202,13 @@ ENABLE_TARGET_OPTSPACE:target-optspace
 %rename cc1plus	newlib_nano_cc1plus
 
 *cpp:
--isystem ${CT_PREFIX_DIR}/newlib-nano/${CT_TARGET}/include %(newlib_nano_cpp)
+-isystem %:getenv(GCC_EXEC_PREFIX ../../newlib-nano/${CT_TARGET}/include) %(newlib_nano_cpp)
 
 *cc1plus:
--idirafter ${CT_PREFIX_DIR}/newlib-nano/${CT_TARGET}/include %(newlib_nano_cc1plus)  
+-idirafter %:getenv(GCC_EXEC_PREFIX ../../newlib-nano/${CT_TARGET}/include) %(newlib_nano_cc1plus)
 
 *link:
--L${CT_PREFIX_DIR}/newlib-nano/${CT_TARGET}/lib/%M -L${CT_PREFIX_DIR}/newlib-nano/${CT_TARGET}/lib
+-L%:getenv(GCC_EXEC_PREFIX ../../newlib-nano/${CT_TARGET}/lib/%M) -L%:getenv(GCC_EXEC_PREFIX ../../newlib-nano/${CT_TARGET}/lib)
 
 EOF
 
@@ -216,6 +219,31 @@ EOF
     CT_EndStep
 
     do_cc_libstdcxx_newlib_nano
+
+    if [ "${CT_NEWLIB_NANO_INSTALL_IN_TARGET}" = "y" ]; then
+        CT_DoExecLog ALL mkdir -p "${CT_PREFIX_DIR}/${CT_TARGET}/include/newlib-nano"
+        CT_DoExecLog ALL cp -f "${CT_PREFIX_DIR}/newlib-nano/${CT_TARGET}/include/newlib.h" \
+                               "${CT_PREFIX_DIR}/${CT_TARGET}/include/newlib-nano/newlib.h"
+        CT_IterateMultilibs newlib_nano_copy_multilibs copylibs
+    fi
+}
+
+newlib_nano_copy_multilibs()
+{
+    local nano_lib_dir="${CT_PREFIX_DIR}/newlib-nano"
+    local multi_flags multi_dir multi_os_dir multi_os_dir_gcc multi_root multi_index multi_count
+
+    for arg in "$@"; do
+        eval "${arg// /\\ }"
+    done
+
+    for lib_a in "${nano_lib_dir}/${CT_TARGET}/lib/${multi_dir}/"*.a; do
+       if [ -f ${lib_a} ] && [ ! -L ${lib_a} ]; then
+          _f=$(basename "${lib_a}")
+          CT_DoExecLog ALL cp -f "${lib_a}" \
+                                 "${CT_PREFIX_DIR}/${CT_TARGET}/lib/${multi_dir}/${_f%.*}_nano.a"
+       fi
+    done
 }
 
 fi
