@@ -436,9 +436,11 @@ do_gcc_core_backend() {
     # with the same block in do_gcc_backend, below.
     if [ "${build_staticlinked}" = "yes" ]; then
         core_LDFLAGS+=("-static")
-        host_libstdcxx_flags+=("-static-libgcc")
-        host_libstdcxx_flags+=("-Wl,-Bstatic,-lstdc++")
-        host_libstdcxx_flags+=("-lm")
+        if [ "${CT_GCC_older_than_6}" = "y" ]; then
+            host_libstdcxx_flags+=("-static-libgcc")
+            host_libstdcxx_flags+=("-Wl,-Bstatic,-lstdc++")
+            host_libstdcxx_flags+=("-lm")
+        fi
         # Companion libraries are build static (eg !shared), so
         # the libstdc++ is not pulled automatically, although it
         # is needed. Shoe-horn it in our LDFLAGS
@@ -446,7 +448,7 @@ do_gcc_core_backend() {
         core_LDFLAGS+=("-lstdc++")
         core_LDFLAGS+=("-lm")
     else
-        if [ "${CT_CC_GCC_STATIC_LIBSTDCXX}" = "y" ]; then
+        if [ "${CT_CC_GCC_STATIC_LIBSTDCXX}" = "y" -a "${CT_GCC_older_than_6}" = "y" ]; then
             # this is from CodeSourcery arm-2010q1-202-arm-none-linux-gnueabi.src.tar.bz2
             # build script
             # INFO: if the host gcc is gcc-4.5 then presumably we could use -static-libstdc++,
@@ -696,20 +698,8 @@ do_gcc_core_backend() {
         libgcc_rule="libgcc.mvars"
         core_targets=( gcc target-libgcc )
 
-        # On bare metal and canadian build the host-compiler is used when
-        # actually the build-system compiler is required. Choose the correct
-        # compilers for canadian build and use the defaults on other
-        # configurations.
-        if [ "${CT_BARE_METAL},${CT_CANADIAN}" = "y,y" ]; then
-            repair_cc="CC_FOR_BUILD=${CT_BUILD}-gcc \
-                       CXX_FOR_BUILD=${CT_BUILD}-g++ \
-                       GCC_FOR_TARGET=${CT_TARGET}-${CT_CC}"
-        else
-            repair_cc=""
-        fi
+        CT_DoExecLog ALL make ${CT_JOBSFLAGS} -C gcc ${libgcc_rule}
 
-        CT_DoExecLog ALL make ${CT_JOBSFLAGS} -C gcc ${libgcc_rule} \
-                              ${repair_cc}
         sed -r -i -e 's@-lc@@g' gcc/${libgcc_rule}
     else # build_libgcc
         core_targets=( gcc )
@@ -1084,9 +1074,11 @@ do_gcc_backend() {
     # with the same block in do_gcc_core_backend, above.
     if [ "${CT_STATIC_TOOLCHAIN}" = "y" ]; then
         final_LDFLAGS+=("-static")
-        host_libstdcxx_flags+=("-static-libgcc")
-        host_libstdcxx_flags+=("-Wl,-Bstatic,-lstdc++")
-        host_libstdcxx_flags+=("-lm")
+        if [ "${CT_GCC_older_than_6}" = "y" ]; then
+            host_libstdcxx_flags+=("-static-libgcc")
+            host_libstdcxx_flags+=("-Wl,-Bstatic,-lstdc++")
+            host_libstdcxx_flags+=("-lm")
+        fi
         # Companion libraries are build static (eg !shared), so
         # the libstdc++ is not pulled automatically, although it
         # is needed. Shoe-horn it in our LDFLAGS
@@ -1094,7 +1086,7 @@ do_gcc_backend() {
         final_LDFLAGS+=("-lstdc++")
         final_LDFLAGS+=("-lm")
     else
-        if [ "${CT_CC_GCC_STATIC_LIBSTDCXX}" = "y" ]; then
+        if [ "${CT_CC_GCC_STATIC_LIBSTDCXX}" = "y" -a "${CT_GCC_older_than_6}" = "y" ]; then
             # this is from CodeSourcery arm-2010q1-202-arm-none-linux-gnueabi.src.tar.bz2
             # build script
             # INFO: if the host gcc is gcc-4.5 then presumably we could use -static-libstdc++,
@@ -1130,6 +1122,11 @@ do_gcc_backend() {
     else
         extra_config+=("--disable-lto")
     fi
+    case "${CT_CC_GCC_LTO_ZSTD}" in
+        y) extra_config+=("--with-zstd");;
+        m) ;;
+        *) extra_config+=("--without-zstd");;
+    esac
 
     if [ ${#host_libstdcxx_flags[@]} -ne 0 ]; then
         extra_config+=("--with-host-libstdcxx=${host_libstdcxx_flags[*]}")
