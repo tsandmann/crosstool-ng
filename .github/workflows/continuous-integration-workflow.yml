@@ -24,7 +24,7 @@ jobs:
         if: ${{ runner.os == 'macOS' }}
         run: |
           brew install autoconf automake bash binutils gawk gnu-sed \
-               gnu-tar help2man ncurses
+               gnu-tar help2man make ncurses
       - name: "build ct-ng"
         run: |
           if [ "$RUNNER_OS" == "macOS" ]; then
@@ -79,6 +79,10 @@ jobs:
                 sed -i -e '/CT_LOG_PROGRESS_BAR/s/y$/n/' .config; \
                 sed -i -e '/CT_LOCAL_TARBALLS_DIR/s/HOME/CT_TOP_DIR/' .config; \
                 sed -i -e '/CT_PREFIX_DIR/s/HOME/CT_TOP_DIR/' .config; \
+                sed -i -e 's/^.*CT_COMP_TOOLS_BISON.*$/CT_COMP_TOOLS_BISON=y/' .config; \
+                sed -i -e 's/^.*CT_COMP_TOOLS_M4.*$/CT_COMP_TOOLS_M4=y/' .config; \
+                sed -i -e 's/^.*CT_COMP_TOOLS_MAKE.*$/CT_COMP_TOOLS_MAKE=y/' .config; \
+                ct-ng olddefconfig; \
                 ct-ng source; \
           done
           tar -cvf src.tar src
@@ -106,7 +110,10 @@ jobs:
           "arm-unknown-linux-gnueabi",
           "arm-unknown-linux-musleabi",
           "armv6-nommu-linux-uclibcgnueabi",
+          "avr",
+          "i686-w64-mingw32",
           "mips-unknown-elf",
+          "mips-unknown-linux-gnu",
           "mips64-unknown-linux-gnu",
           "powerpc-unknown-linux-gnu",
           "powerpc64-unknown-linux-gnu",
@@ -117,6 +124,7 @@ jobs:
           "sparc-unknown-linux-gnu",
           "x86_64-unknown-linux-gnu",
           "x86_64-multilib-linux-uclibc",
+          "x86_64-w64-mingw32",
           "xtensa-fsf-linux-uclibc"
         ]
         exclude:
@@ -127,9 +135,10 @@ jobs:
           - {host: "macos-10.15", sample: "arc-multilib-linux-gnu"}
           - {host: "macos-10.15", sample: "arc-multilib-linux-uclibc"}
 
-          # Exclude mips64-*-linux-gnu because of <byteswap.h> usage in
+          # Exclude mips*-*-linux-gnu because of <byteswap.h> usage in
           # elf-entry.c for linux kernel headers.  <byteswap.h> is a GNU
           # extension and doesn't exist on MacOS X
+          - {host: "macos-10.15", sample: "mips-unknown-linux-gnu"}
           - {host: "macos-10.15", sample: "mips64-unknown-linux-gnu"}
     steps:
       - name: Create case sensitive workspace volume for macOS
@@ -163,7 +172,7 @@ jobs:
         if: ${{ runner.os == 'macOS' }}
         run: |
           brew install autoconf automake bash binutils gawk gnu-sed \
-               gnu-tar help2man ncurses pkg-config
+               gnu-tar help2man make ncurses pkg-config
           echo "$GITHUB_WORKSPACE/.local/bin" >> $GITHUB_PATH
       - name: "build ${{ matrix.sample }} for ${{ matrix.host }}"
         run: |

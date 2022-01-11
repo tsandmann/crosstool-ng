@@ -10,6 +10,7 @@ config GDB_NATIVE
     select LIBC_UCLIBC_IPV6 if LIBC_UCLIBC && GDB_8_3_or_later
     select EXPAT_TARGET
     select NCURSES_TARGET
+    select GMP_TARGET if GDB_11_1_or_later
     help
       Build and install a native gdb for the target, to run on the target.
 
@@ -29,7 +30,7 @@ config GDB_NATIVE_BUILD_IPA_LIB
     bool
     prompt "Build the IPA library"
     depends on LIBC_GLIBC
-    depends on GDB_HAS_IPA_LIB && !GDB_NATIVE_STATIC
+    depends on !GDB_NATIVE_STATIC
     help
       gdbserver >= 7.2 comes with an optional library to use tracepoints,
       the In Process Agent (IPA) library, libinproctrace.so. This library
