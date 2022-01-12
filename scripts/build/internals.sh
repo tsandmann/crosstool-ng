@@ -134,15 +134,6 @@ do_finish() {
         CT_DoForceRmdir "${CT_DEBUGROOT_DIR}/"{,usr/}{,share/}{man,info}
     fi
 
-    # create nano c++ libs
-    if [ -e "${CT_SYSROOT_DIR}/lib/libstdc++.a.bak" ]; then
-      CT_DoExecLog ALL mv -v "${CT_SYSROOT_DIR}/lib/libstdc++.a" "${CT_SYSROOT_DIR}/lib/libstdc++_nano.a"
-      CT_DoExecLog ALL mv -v "${CT_SYSROOT_DIR}/lib/libsupc++.a" "${CT_SYSROOT_DIR}/lib/libsupc++_nano.a"
-
-      CT_DoExecLog ALL mv -v "${CT_SYSROOT_DIR}/lib/libstdc++.a.bak" "${CT_SYSROOT_DIR}/lib/libstdc++.a"
-      CT_DoExecLog ALL mv -v "${CT_SYSROOT_DIR}/lib/libsupc++.a.bak" "${CT_SYSROOT_DIR}/lib/libsupc++.a"
-    fi
-
     if [ "${CT_INSTALL_LICENSES}" = y ]; then
         CT_InstallCopyingInformation
     fi
