@@ -324,7 +324,7 @@ CT_DoExecLog ALL mkdir -p "${CT_HOST_COMPLIBS_DIR}"
 # the previous build was successful.
 CT_DoExecLog ALL chmod -R u+w "${CT_PREFIX_DIR}"
 
-## Check install file system case-sensitiveness
+# Check install file system case-sensitiveness
 #CT_DoExecLog DEBUG touch "${CT_PREFIX_DIR}/foo"
 #CT_TestAndAbort "Your file system in '${CT_PREFIX_DIR}' is *not* case-sensitive!" -f "${CT_PREFIX_DIR}/FOO"
 #CT_DoExecLog DEBUG rm -f "${CT_PREFIX_DIR}/foo"
