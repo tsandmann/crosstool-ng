@@ -1,7 +1,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 
-AC_PREREQ([2.67])
+AC_PREREQ([2.69])
 
 AC_INIT(
     [crosstool-NG],
@@ -93,7 +93,7 @@ AC_PROG_CC
 AM_PROG_CC_C_O
 AC_PROG_CXX
 AC_PROG_CPP
-AC_PROG_LEX
+AC_PROG_LEX([noyywrap])
 AC_PROG_YACC
 AS_IF([test -z "$CC" -o -z "$CXX"],
       [AC_MSG_ERROR([no suitable compiler found])])
@@ -267,12 +267,19 @@ CTNG_PROG_VERSION([PYTHON],
     [^Python 3\.([4-9]|[1-9][0-9]+)\.],
     [python_3_4_or_newer])
 
-CTNG_PROG_VERSION([BISON],
+CTNG_PROG_VERSION_REQ_ANY([BISON],
     [bison >= 2.7],
     [bison],
     [bison],
     [\(GNU Bison\) (2\.[7-9]|2\.[1-9][0-9]|[3-9]\.)],
     [bison_2_7_or_newer])
+
+CTNG_PROG_VERSION_REQ_ANY([BISON],
+    [bison >= 3.0.4],
+    [bison],
+    [bison],
+    [\(GNU Bison\) (3\.0\.[4-9]|3\.[1-9]|[4-9]\.)],
+    [bison_3_0_4_or_newer])
 
 AC_SUBST([kconfig_options])
 
@@ -300,7 +307,6 @@ CTNG_SET_KCONFIG_OPTION([sha512sum])
 
 # FIXME why checking if not using the result? We don't provide replacemant malloc/alloca/...
 AC_C_INLINE
-AC_HEADER_STDC
 AC_FUNC_MALLOC
 AC_FUNC_REALLOC
 AC_FUNC_ALLOCA

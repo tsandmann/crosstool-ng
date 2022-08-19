@@ -43,6 +43,7 @@ cc_gcc_lang_list() {
     [ "${CT_CC_LANG_CXX}" = "y"      ] && lang_list+=",c++"
     [ "${CT_CC_LANG_FORTRAN}" = "y"  ] && lang_list+=",fortran"
     [ "${CT_CC_LANG_ADA}" = "y"      ] && lang_list+=",ada"
+    [ "${CT_CC_LANG_D}" = "y"      ] && lang_list+=",d"
     [ "${CT_CC_LANG_JAVA}" = "y"     ] && lang_list+=",java"
     [ "${CT_CC_LANG_OBJC}" = "y"     ] && lang_list+=",objc"
     [ "${CT_CC_LANG_OBJCXX}" = "y"   ] && lang_list+=",obj-c++"
@@ -379,6 +380,7 @@ do_gcc_core_backend() {
 
     case "${CT_CC_GCC_LIBSTDCXX_VERBOSE}" in
         y)  extra_config+=("--enable-libstdcxx-verbose");;
+        m)  ;;
         "") extra_config+=("--disable-libstdcxx-verbose");;
     esac
 
@@ -432,6 +434,10 @@ do_gcc_core_backend() {
 
     if [ ${#host_libstdcxx_flags[@]} -ne 0 ]; then
         extra_config+=("--with-host-libstdcxx=${host_libstdcxx_flags[*]}")
+    fi
+
+    if [ "${CT_CC_GCC_ENABLE_DEFAULT_PIE}" = "y" ]; then
+        extra_config+=("--enable-default-pie")
     fi
 
     if [ "${CT_CC_GCC_ENABLE_TARGET_OPTSPACE}" = "y" ] || \
@@ -600,6 +606,12 @@ do_gcc_core_backend() {
         --enable-languages="${lang_list}"              \
         "${extra_user_config[@]}"
 
+    gcc_core_build_libcpp=all-build-libcpp
+    # disable target all-build-libcpp in gcc older verions
+    if [ "${CT_GCC_older_than_5}" = "y" ]; then
+        gcc_core_build_libcpp=""
+    fi
+
     if [ "${build_libgcc}" = "yes" ]; then
         # HACK: we need to override SHLIB_LC from gcc/config/t-slibgcc-elf-ver or
         # gcc/config/t-libunwind so -lc is removed from the link for
@@ -621,10 +633,10 @@ do_gcc_core_backend() {
             CT_DoExecLog CFG make ${CT_JOBSFLAGS} configure-libiberty
             CT_DoExecLog ALL make ${CT_JOBSFLAGS} -C libiberty libiberty.a
             CT_DoExecLog CFG make ${CT_JOBSFLAGS} configure-gcc configure-libcpp
-            CT_DoExecLog ALL make ${CT_JOBSFLAGS} all-libcpp all-build-libcpp
+            CT_DoExecLog ALL make ${CT_JOBSFLAGS} all-libcpp ${gcc_core_build_libcpp}
         else
             CT_DoExecLog CFG make ${CT_JOBSFLAGS} configure-gcc configure-libcpp configure-build-libiberty
-            CT_DoExecLog ALL make ${CT_JOBSFLAGS} all-libcpp all-build-libcpp all-build-libiberty
+            CT_DoExecLog ALL make ${CT_JOBSFLAGS} all-libcpp ${gcc_core_build_libcpp} all-build-libiberty
         fi
         # HACK: gcc-4.2 uses libdecnumber to build libgcc.mk, so build it here.
         if [ -d "${CT_SRC_DIR}/gcc/libdecnumber" ]; then
@@ -997,11 +1009,11 @@ do_gcc_backend() {
         extra_config+=(--disable-libquadmath-support)
     fi
 
-    if [ "${CT_CC_GCC_LIBSANITIZER}" = "y" ]; then
-        extra_config+=(--enable-libsanitizer)
-    else
-        extra_config+=(--disable-libsanitizer)
-    fi
+    case "${CT_CC_GCC_LIBSANITIZER}" in
+        y) extra_config+=(--enable-libsanitizer);;
+        m) ;;
+        "") extra_config+=(--disable-libsanitizer);;
+    esac
 
     if [ "${CT_CC_GCC_HAS_LIBMPX}" = "y" ]; then
         if [ "${CT_CC_GCC_LIBMPX}" = "y" ]; then
@@ -1013,6 +1025,7 @@ do_gcc_backend() {
 
     case "${CT_CC_GCC_LIBSTDCXX_VERBOSE}" in
         y)  extra_config+=("--enable-libstdcxx-verbose");;
+        m)  ;;
         "") extra_config+=("--disable-libstdcxx-verbose");;
     esac
     
@@ -1220,7 +1233,7 @@ do_gcc_backend() {
         --target=${CT_TARGET}                          \
         --prefix="${prefix}"                           \
         --exec_prefix="${exec_prefix}"                 \
-        ${CT_CC_SYSROOT_ARG}                           \
+        "${CT_CC_SYSROOT_ARG[@]}"                      \
         "${extra_config[@]}"                           \
         --with-local-prefix="${CT_SYSROOT_DIR}"        \
         --enable-long-long                             \

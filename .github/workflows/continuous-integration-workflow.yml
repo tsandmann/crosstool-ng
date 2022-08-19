@@ -9,14 +9,14 @@ jobs:
     runs-on: ${{ matrix.host }}
     strategy:
       matrix:
-        host: [ "ubuntu-latest", "macos-10.15" ]
+        host: [ "ubuntu-latest", "macos-latest" ]
     steps:
       - name: "clone"
         uses: actions/checkout@v2
       - name: "prereq Linux"
         if: ${{ runner.os == 'Linux' }}
         run: |
-          sudo apt-get install -y gperf help2man libtool-bin
+          sudo apt-get install -y gperf help2man libtool-bin meson ninja-build
       - name: "prereq macOS"
         if: ${{ runner.os == 'macOS' }}
         run: |
@@ -69,7 +69,8 @@ jobs:
         run: |
           mkdir -p src
           for sample in aarch64-unknown-linux-gnu arm-picolibc-eabi \
-                arm-unknown-linux-musleabi armv6-nommu-linux-uclibcgnueabi; do \
+                arm-unknown-linux-musleabi armv6-nommu-linux-uclibcgnueabi \
+                x86_64-w64-mingw32; do \
                 ct-ng $sample; \
                 sed -i -e '/CT_LOG_PROGRESS_BAR/s/y$/n/' .config; \
                 sed -i -e '/CT_LOCAL_TARBALLS_DIR/s/HOME/CT_TOP_DIR/' .config; \
@@ -103,6 +104,7 @@ jobs:
           "armv6-nommu-linux-uclibcgnueabi",
           "avr",
           "i686-w64-mingw32",
+          "loongarch64-unknown-linux-gnu",
           "mips-unknown-elf",
           "mips-unknown-linux-gnu",
           "mips64-unknown-linux-gnu",
