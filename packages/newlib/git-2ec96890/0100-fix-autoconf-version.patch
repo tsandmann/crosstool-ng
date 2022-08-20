@@ -1,0 +1,94 @@
+diff --git a/newlib/Makefile.in b/newlib/Makefile.in
+index 267db9019..1af918059 100644
+--- a/newlib/Makefile.in
++++ b/newlib/Makefile.in
+@@ -3757,10 +3757,6 @@ MAINT = @MAINT@
+ MAKEINFO = @MAKEINFO@
+ MKDIR_P = @MKDIR_P@
+ NEWLIB_CFLAGS = @NEWLIB_CFLAGS@
+-NEWLIB_MAJOR_VERSION = @NEWLIB_MAJOR_VERSION@
+-NEWLIB_MINOR_VERSION = @NEWLIB_MINOR_VERSION@
+-NEWLIB_PATCHLEVEL_VERSION = @NEWLIB_PATCHLEVEL_VERSION@
+-NEWLIB_VERSION = @NEWLIB_VERSION@
+ NO_INCLUDE_LIST = @NO_INCLUDE_LIST@
+ OBJEXT = @OBJEXT@
+ PACKAGE = @PACKAGE@
+diff --git a/newlib/_newlib_version.hin b/newlib/_newlib_version.hin
+index 077b81ecf..03d4e3d47 100644
+--- a/newlib/_newlib_version.hin
++++ b/newlib/_newlib_version.hin
+@@ -2,16 +2,10 @@
+ #ifndef _NEWLIB_VERSION_H__
+ #define _NEWLIB_VERSION_H__ 1
+ 
+-/* The newlib version in string format. */
+-#define _NEWLIB_VERSION "@NEWLIB_VERSION@"
+-
+-/* The newlib major version number. */
+-#define __NEWLIB__ @NEWLIB_MAJOR_VERSION@
+-
+-/* The newlib minor version number. */
+-#define __NEWLIB_MINOR__ @NEWLIB_MINOR_VERSION@
+-
+-/* The newlib patch level. */
+-#define __NEWLIB_PATCHLEVEL__ @NEWLIB_PATCHLEVEL_VERSION@
++#undef _NEWLIB_VERSION
++#undef __NEWLIB__
++#undef __NEWLIB_MINOR__
++#undef __NEWLIB_PATCHLEVEL__
+ 
+ #endif /* !_NEWLIB_VERSION_H__ */
++
+diff --git a/newlib/configure b/newlib/configure
+index 2be0a6c33..624ec89af 100755
+--- a/newlib/configure
++++ b/newlib/configure
+@@ -587,10 +587,6 @@ HAVE_LONG_DOUBLE_FALSE
+ am__EXEEXT_TRUE
+ LTLIBOBJS
+ LIBOBJS
+-NEWLIB_PATCHLEVEL_VERSION
+-NEWLIB_MINOR_VERSION
+-NEWLIB_MAJOR_VERSION
+-NEWLIB_VERSION
+ EXEEXT_FOR_BUILD
+ CC_FOR_BUILD
+ CRT1_DIR
+@@ -6465,8 +6465,16 @@ _ACEOF
+ 
+ 
+ 
++$as_echo "#define _NEWLIB_VERSION \"4.2.0\"" >>confdefs.h
+ 
+ 
++$as_echo "#define __NEWLIB__ 4" >>confdefs.h
++
++
++$as_echo "#define __NEWLIB_MINOR__ 2" >>confdefs.h
++
++
++$as_echo "#define __NEWLIB_PATCHLEVEL__ 0" >>confdefs.h
+ 
+ 
+ if test "${newlib_iconv}" = "yes"; then
+diff --git a/newlib/configure.ac b/newlib/configure.ac
+index e1fb2ad0e..35d94666a 100644
+--- a/newlib/configure.ac
++++ b/newlib/configure.ac
+@@ -433,12 +433,10 @@ if test "${newlib_mb}" = "yes"; then
+ fi
+ AC_DEFINE_UNQUOTED(_MB_LEN_MAX, $_mb_len_max, [Multibyte max length.])
+ 
+-dnl These are AC_SUBST instead of AC_DEFINE as they're hand maintained in a
+-dnl dedicated _newlib_version.h, and we don't want them in newlib.h.
+-AC_SUBST([NEWLIB_VERSION])
+-AC_SUBST([NEWLIB_MAJOR_VERSION])
+-AC_SUBST([NEWLIB_MINOR_VERSION])
+-AC_SUBST([NEWLIB_PATCHLEVEL_VERSION])
++AC_DEFINE(_NEWLIB_VERSION, "NEWLIB_VERSION", [The newlib version in string format.])
++AC_DEFINE(__NEWLIB__, NEWLIB_MAJOR_VERSION, [The newlib major version number.])
++AC_DEFINE(__NEWLIB_MINOR__, NEWLIB_MINOR_VERSION, [The newlib minor version number.])
++AC_DEFINE(__NEWLIB_PATCHLEVEL__, NEWLIB_PATCHLEVEL_VERSION, [The newlib patch level.])
+ 
+ if test "${newlib_iconv}" = "yes"; then
+   AC_DEFINE(_ICONV_ENABLED, 1, [ICONV enabled.])
