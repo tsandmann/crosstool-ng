@@ -1,0 +1,12 @@
+--- a/ld/configure.tgt	2022-09-24 15:56:50.000000000 +0200
++++ b/ld/configure.tgt	2022-09-24 15:56:50.000000000 +0200
+@@ -55,7 +55,8 @@
+     cris-*-* | crisv32-*-* | \
+     hppa*-*-* | \
+     mips*-*-* | \
+-    sparc*-*-*)
++    sparc*-*-* | \
++    arm-*-elf* | arm*-*-eabi*)
+       ac_default_ld_warn_rwx_segments=0
+       ;;
+     *)
