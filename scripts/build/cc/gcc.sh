@@ -45,6 +45,7 @@ cc_gcc_lang_list() {
     [ "${CT_CC_LANG_ADA}" = "y"      ] && lang_list+=",ada"
     [ "${CT_CC_LANG_D}" = "y"      ] && lang_list+=",d"
     [ "${CT_CC_LANG_JAVA}" = "y"     ] && lang_list+=",java"
+    [ "${CT_CC_LANG_JIT}" = "y"      ] && lang_list+=",jit"
     [ "${CT_CC_LANG_OBJC}" = "y"     ] && lang_list+=",objc"
     [ "${CT_CC_LANG_OBJCXX}" = "y"   ] && lang_list+=",obj-c++"
     [ "${CT_CC_LANG_GOLANG}" = "y"   ] && lang_list+=",go"
@@ -288,14 +289,13 @@ do_gcc_core_backend() {
             ;;
         libstdcxx)
             CT_DoLog EXTRA "Configuring libstdc++ for ${libstdcxx_name}"
-            if [ "${header_dir}" = "" ]; then
+            if [ -z "${header_dir}" ]; then
                 header_dir="${CT_PREFIX_DIR}/${libstdcxx_name}/include"
             fi
-            if [ "${exec_prefix}" = "" ]; then
+            if [ -z "${exec_prefix}" ]; then
                 exec_prefix="${CT_PREFIX_DIR}/${libstdcxx_name}"
             fi
             extra_config+=( "${CT_CC_SYSROOT_ARG[@]}" )
-            extra_config+=( "--with-headers=${header_dir}" )
             extra_user_config=( "${CT_CC_GCC_EXTRA_CONFIG_ARRAY[@]}" )
             log_txt="libstdc++ ${libstdcxx_name} library"
             # to inhibit the libiberty and libgcc tricks later on
@@ -306,7 +306,7 @@ do_gcc_core_backend() {
             ;;
     esac
 
-    if [ "${exec_prefix}" = "" ]; then
+    if [ -z "${exec_prefix}" ]; then
         exec_prefix="${prefix}"
     fi
 
@@ -342,6 +342,10 @@ do_gcc_core_backend() {
     # Hint GCC we'll use a bit special version of Newlib
     if [ "${CT_LIBC_NEWLIB_NANO_FORMATTED_IO}" = "y" ]; then
         extra_config+=("--enable-newlib-nano-formatted-io")
+    fi
+
+    if [ "${CT_CC_LANG_JIT}" = "y" ]; then
+        extra_config+=("--enable-host-shared")
     fi
 
     if [ "${CT_CC_CXA_ATEXIT}" = "y" ]; then
@@ -552,6 +556,13 @@ do_gcc_core_backend() {
         if ${CT_BUILD}-gcc --version 2>&1 | grep clang; then
             cflags_for_build="$cflags_for_build -fbracket-depth=512"
         fi
+    fi
+
+    # Add an extra system include dir if we have one. This is especially useful
+    # when building libstdc++ with a libc other than the system libc (e.g.
+    # picolibc)
+    if [ -n "${header_dir}" ]; then
+        cflags_for_target="${cflags_for_target} -idirafter ${header_dir}"
     fi
 
     # For non-sysrooted toolchain, GCC doesn't search except at the installation
@@ -804,7 +815,7 @@ gcc_movelibs()
 
     # Move only files, directories are for other multilibs. We're looking inside
     # GCC's directory structure, thus use unmangled multi_os_dir that GCC reports.
-    gcc_dir="${CT_PREFIX_DIR}/${CT_TARGET}/lib/${multi_os_dir_gcc}"
+    gcc_dir="${canon_prefix}/${CT_TARGET}/lib/${multi_os_dir_gcc}"
     if [ ! -d "${gcc_dir}" ]; then
         # GCC didn't install anything outside of sysroot
         return
@@ -817,7 +828,7 @@ gcc_movelibs()
         dst_dir="${canon_root}/lib/${multi_os_dir}"
     fi
     CT_SanitizeVarDir dst_dir gcc_dir
-    rel=$( echo "${gcc_dir#${CT_PREFIX_DIR}/}" | sed 's#[^/]\{1,\}#..#g' )
+    rel=$( echo "${gcc_dir#${canon_prefix}/}" | sed 's#[^/]\{1,\}#..#g' )
 
     ls "${gcc_dir}" | while read f; do
         case "${f}" in
@@ -911,7 +922,6 @@ do_gcc_backend() {
     local extra_cxxflags_for_target
     local ldflags
     local build_manuals
-    local exec_prefix
     local header_dir
     local libstdcxx_name
     local -a host_libstdcxx_flags
@@ -926,7 +936,7 @@ do_gcc_backend() {
         eval "${arg// /\\ }"
     done
 
-    if [ "${exec_prefix}" = "" ]; then
+    if [ -z "${exec_prefix}" ]; then
         exec_prefix="${prefix}"
     fi
 
@@ -1199,6 +1209,13 @@ do_gcc_backend() {
         if ${CT_BUILD}-gcc --version 2>&1 | grep clang; then
             cflags_for_build="$cflags_for_build "-fbracket-depth=512
         fi
+    fi
+
+    # Add an extra system include dir if we have one. This is especially useful
+    # when building libstdc++ with a libc other than the system libc (e.g.
+    # picolibc)
+    if [ -n "${header_dir}" ]; then
+        cflags_for_target="${cflags_for_target} -idirafter ${header_dir}"
     fi
 
     # Assume '-O2' by default for building target libraries.
