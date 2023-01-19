@@ -9,10 +9,10 @@ jobs:
     runs-on: ${{ matrix.host }}
     strategy:
       matrix:
-        host: [ "ubuntu-latest", "macos-latest" ]
+        host: ["ubuntu-22.04", "macos-latest"]
     steps:
       - name: "clone"
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: "prereq Linux"
         if: ${{ runner.os == 'Linux' }}
         run: |
@@ -35,12 +35,12 @@ jobs:
           make install
           tar -cf ct-ng.tar .local/
       - name: "upload ct-ng"
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: crosstool.${{ matrix.host }}
           path: ct-ng.tar
       - name: "upload config.log"
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: config.log.${{ matrix.host }}
           path: config.log
@@ -51,10 +51,10 @@ jobs:
     runs-on: ${{ matrix.host }}
     strategy:
       matrix:
-        host: [ "ubuntu-latest" ]
+        host: ["ubuntu-22.04"]
     steps:
       - name: "download ct-ng"
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: crosstool.${{ matrix.host }}
       - name: "extract ct-ng"
@@ -83,13 +83,13 @@ jobs:
           done
           tar -cvf src.tar src
       - name: "upload sources"
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: src.tar
           path: src.tar
 
   toolchains:
-    needs: [ crosstool, tarballs ]
+    needs: [crosstool, tarballs]
     uses: ./.github/workflows/build-toolchains.yml
     with:
       samples: >-
@@ -122,7 +122,7 @@ jobs:
         ]
 
   canadian-cross:
-    needs: [ toolchains ]
+    needs: [toolchains]
     uses: ./.github/workflows/build-toolchains.yml
     with:
       samples: >-
