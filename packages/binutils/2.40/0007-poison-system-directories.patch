@@ -1,4 +1,4 @@
-From 6d79a3e0fadbc0e619b039db2c73353d68036acc Mon Sep 17 00:00:00 2001
+From bc4775985c053b5eb9c5f0cea53ba74376ad1ac3 Mon Sep 17 00:00:00 2001
 From: Scott Garman <scott.a.garman@intel.com>
 Date: Mon, 8 Aug 2022 20:48:32 +1200
 Subject: [PATCH] poison system directories
@@ -77,7 +77,7 @@ Signed-off-by: Scott Garman <scott.a.garman@intel.com>
 
 --- a/ld/config.in
 +++ b/ld/config.in
-@@ -55,6 +55,9 @@
+@@ -58,6 +58,9 @@
     language is requested. */
  #undef ENABLE_NLS
  
@@ -89,7 +89,7 @@ Signed-off-by: Scott Garman <scott.a.garman@intel.com>
  
 --- a/ld/configure
 +++ b/ld/configure
-@@ -836,6 +836,7 @@
+@@ -839,6 +839,7 @@
  enable_targets
  enable_64_bit_bfd
  with_sysroot
@@ -97,7 +97,7 @@ Signed-off-by: Scott Garman <scott.a.garman@intel.com>
  enable_gold
  enable_got
  enable_compressed_debug_sections
-@@ -1514,6 +1515,8 @@
+@@ -1521,6 +1522,8 @@
    --enable-checking       enable run-time checks
    --enable-targets        alternative target configurations
    --enable-64-bit-bfd     64-bit support (on hosts with narrower word sizes)
@@ -106,7 +106,7 @@ Signed-off-by: Scott Garman <scott.a.garman@intel.com>
    --enable-gold[=ARG]     build gold [ARG={default,yes,no}]
    --enable-got=<type>     GOT handling scheme (target, single, negative,
                            multigot)
-@@ -15370,7 +15373,18 @@
+@@ -15504,7 +15507,18 @@
  fi
  
  
@@ -127,7 +127,7 @@ Signed-off-by: Scott Garman <scott.a.garman@intel.com>
  if test "${enable_got+set}" = set; then :
 --- a/ld/configure.ac
 +++ b/ld/configure.ac
-@@ -102,6 +102,16 @@
+@@ -103,6 +103,16 @@
  AC_SUBST(TARGET_SYSTEM_ROOT)
  AC_SUBST(TARGET_SYSTEM_ROOT_DEFINE)
  
@@ -146,7 +146,7 @@ Signed-off-by: Scott Garman <scott.a.garman@intel.com>
  dnl "installed_linker" is the installed BFD linker name.
 --- a/ld/ld.h
 +++ b/ld/ld.h
-@@ -157,6 +157,14 @@
+@@ -158,6 +158,14 @@
    /* If set, display the target memory usage (per memory region).  */
    bool print_memory_usage;
  
@@ -163,7 +163,7 @@ Signed-off-by: Scott Garman <scott.a.garman@intel.com>
       in the linker script.  */
 --- a/ld/ld.texi
 +++ b/ld/ld.texi
-@@ -2947,6 +2947,18 @@
+@@ -2960,6 +2960,18 @@
  occurrence of the --package-metdata option.
  If the linker has been built with libjansson, then the JSON string
  will be validated.
@@ -210,7 +210,7 @@ Signed-off-by: Scott Garman <scott.a.garman@intel.com>
  /* Try to open a BFD for a lang_input_statement.  */
 --- a/ld/ldlex.h
 +++ b/ld/ldlex.h
-@@ -168,6 +168,8 @@
+@@ -170,6 +170,8 @@
    OPTION_NO_WARN_EXECSTACK,
    OPTION_WARN_RWX_SEGMENTS,
    OPTION_NO_WARN_RWX_SEGMENTS,
@@ -232,7 +232,7 @@ Signed-off-by: Scott Garman <scott.a.garman@intel.com>
       COLLECT_NO_DEMANGLE.  The gcc collect2 program will demangle the
 --- a/ld/lexsup.c
 +++ b/ld/lexsup.c
-@@ -608,6 +608,14 @@
+@@ -613,6 +613,14 @@
  		   "                                <method> is: share-unconflicted (default),\n"
  		   "                                             share-duplicated"),
      TWO_DASHES },
@@ -247,7 +247,7 @@ Signed-off-by: Scott Garman <scott.a.garman@intel.com>
  };
  
  #define OPTION_COUNT ARRAY_SIZE (ld_options)
-@@ -620,6 +628,7 @@
+@@ -625,6 +633,7 @@
    int ingroup = 0;
    char *default_dirlist = NULL;
    char *shortopts;
@@ -255,7 +255,7 @@ Signed-off-by: Scott Garman <scott.a.garman@intel.com>
    struct option *longopts;
    struct option *really_longopts;
    int last_optind;
-@@ -1679,6 +1688,14 @@
+@@ -1692,6 +1701,14 @@
  	  }
  	  break;
  
@@ -270,7 +270,7 @@ Signed-off-by: Scott Garman <scott.a.garman@intel.com>
  	case OPTION_PUSH_STATE:
  	  input_flags.pushed = xmemdup (&input_flags,
  					sizeof (input_flags),
-@@ -1824,6 +1841,10 @@
+@@ -1837,6 +1854,10 @@
        command_line.soname = NULL;
      }
  

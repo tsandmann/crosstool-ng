@@ -1,4 +1,4 @@
-From 2b887f9f158c963d0ffb9759c9ff4d89c88b7ed1 Mon Sep 17 00:00:00 2001
+From 3a39115dbbfe31b013d033191fb637e8f76288a8 Mon Sep 17 00:00:00 2001
 From: Andrew Hsieh <andrewhsieh@google.com>
 Date: Wed, 18 Mar 2015 10:57:24 +0800
 Subject: [PATCH] Fix darwin build
@@ -15,7 +15,7 @@ Change-Id: I69204a72f853f5263dffedc448379d75ed4eca2e
 
 --- a/bfd/peXXigen.c
 +++ b/bfd/peXXigen.c
-@@ -3641,6 +3641,28 @@
+@@ -3647,6 +3647,28 @@
  }
  #endif /* not Cygwin/Mingw */
  

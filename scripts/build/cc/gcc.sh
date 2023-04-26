@@ -392,6 +392,14 @@ do_gcc_core_backend() {
         extra_config+=(--disable-libstdcxx)
     fi
 
+    if [ "${CT_LIBC_PICOLIBC}" = "y" ]; then
+	extra_config+=("--with-default-libc=picolibc")
+	extra_config+=("--enable-stdio=pure")
+	if [ "${CT_PICOLIBC_older_than_1_8}" = "y" ]; then
+	    extra_config+=("--disable-wchar_t")
+	fi
+    fi
+
     core_LDFLAGS+=("${ldflags}")
 
     # *** WARNING ! ***
@@ -1043,6 +1051,12 @@ do_gcc_backend() {
         extra_config+=(--disable-libstdcxx)
     fi
 
+    if [ "${CT_LIBC_PICOLIBC}" = "y" ]; then
+	extra_config+=("--with-default-libc=picolibc")
+	extra_config+=("--enable-stdio=pure")
+	extra_config+=("--disable-wchar_t")
+    fi
+
     final_LDFLAGS+=("${ldflags}")
 
     # *** WARNING ! ***
@@ -1087,7 +1101,7 @@ do_gcc_backend() {
         extra_config+=("--disable-lto")
     fi
     case "${CT_CC_GCC_LTO_ZSTD}" in
-        y) extra_config+=("--with-zstd");;
+        y) extra_config+=("--with-zstd=${complibs}");;
         m) ;;
         *) extra_config+=("--without-zstd");;
     esac
