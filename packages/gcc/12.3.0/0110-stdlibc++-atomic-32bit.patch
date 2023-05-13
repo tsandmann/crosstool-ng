@@ -1,6 +1,6 @@
 --- a/libstdc++-v3/include/bits/atomic_wait.h
 +++ b/libstdc++-v3/include/bits/atomic_wait.h
-@@ -64,7 +64,11 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
+@@ -64,7 +64,11 @@
  // and __platform_notify() if there is a more efficient primitive supported
  // by the platform (e.g. __ulock_wait()/__ulock_wake()) which is better than
  // a mutex/condvar based wait.
@@ -9,6 +9,6 @@
 +#else
 +    using __platform_wait_t = uint32_t;
 +#endif
-     static constexpr size_t __platform_wait_alignment
+     inline constexpr size_t __platform_wait_alignment
        = __alignof__(__platform_wait_t);
  #endif
