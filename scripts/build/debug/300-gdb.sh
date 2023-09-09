@@ -69,13 +69,21 @@ do_debug_gdb_build()
         extra_config+=("--with-expat")
         extra_config+=("--without-libexpat-prefix")
 
+        # ct-ng always builds ncurses in cross mode as a static library.
+        # Starting from the patchset 20200718 ncurses defines a special macro
+        # NCURSES_STATIC for a static library. This is critical for mingw host
+        # platform.
+        #
+        # The problem is that the macro must be defined in a user program too,
+        # not just in ncurses. It won't hurt if we define it here.
         do_gdb_backend \
             buildtype=cross \
             host="${CT_HOST}" \
-            cflags="${CT_CFLAGS_FOR_HOST}" \
+            cflags="${CT_CFLAGS_FOR_HOST} -DNCURSES_STATIC" \
             ldflags="${CT_LDFLAGS_FOR_HOST}" \
             prefix="${CT_PREFIX_DIR}" \
             static="${CT_GDB_CROSS_STATIC}" \
+            static_libstdcxx="${CT_GDB_CROSS_STATIC}" \
             --with-sysroot="${CT_SYSROOT_DIR}"          \
             "${cross_extra_config[@]}"
 
@@ -167,8 +175,8 @@ do_debug_gdb_build()
         # version of expat and will attempt to link that, despite the -static flag.
         # The link will fail, and configure will abort with "expat missing or unusable"
         # message.
-        extra_config+=("--with-expat")
-        extra_config+=("--without-libexpat-prefix")
+        native_extra_config+=("--with-expat")
+        native_extra_config+=("--without-libexpat-prefix")
 
         do_gdb_backend \
             buildtype=native \
@@ -177,7 +185,7 @@ do_debug_gdb_build()
             cflags="${CT_ALL_TARGET_CFLAGS}" \
             ldflags="${CT_ALL_TARGET_LDFLAGS}" \
             static="${CT_GDB_NATIVE_STATIC}" \
-            static_libstdc="${CT_GDB_NATIVE_STATIC_LIBSTDC}" \
+            static_libstdcxx="${CT_GDB_NATIVE_STATIC_LIBSTDCXX}" \
             prefix=/usr \
             destdir="${CT_DEBUGROOT_DIR}" \
             "${native_extra_config[@]}"
@@ -245,7 +253,7 @@ do_debug_gdb_build()
 
 do_gdb_backend()
 {
-    local host prefix destdir cflags ldflags static buildtype subdir
+    local host prefix destdir cflags ldflags static buildtype subdir includedir
     local -a extra_config
 
     for arg in "$@"; do
@@ -308,6 +316,17 @@ do_gdb_backend()
         CT_mkdir_pushd "${subdir}"
     fi
 
+    # Use a relative path for include directory if gdb or gdbserver
+    # is being built and installed for a target. Otherwise headers
+    # are installed in ${destdir}${CT_HEADERS_DIR} - a concatenation
+    # of ${destdir} and an absolute path to sysroot's include directory.
+    # As a result debug-root may contain wrong paths for includes.
+    if [ -n "${destdir}" ]; then
+        includedir="/usr/include"
+    else
+        includedir=${CT_HEADERS_DIR}
+    fi
+
     # TBD: is passing CPP/CC/CXX/LD needed? GCC should be determining this automatically from the triplets
     CT_DoExecLog CFG                                \
     CPP="${host}-cpp"                               \
@@ -324,7 +343,7 @@ do_gdb_backend()
         --target=${CT_TARGET}                       \
         --prefix="${prefix}"                        \
         --with-build-sysroot="${CT_SYSROOT_DIR}"    \
-        --includedir="${CT_HEADERS_DIR}"            \
+        --includedir="${includedir}"                \
         --disable-werror                            \
         "${extra_config[@]}"                        \
 
