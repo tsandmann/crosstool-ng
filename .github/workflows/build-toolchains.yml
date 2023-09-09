@@ -35,10 +35,6 @@ jobs:
           - {host: "macos-latest", sample: "mips-unknown-linux-gnu"}
           - {host: "macos-latest", sample: "mips64-unknown-linux-gnu"}
 
-          # Exclude arm-picolibc-eabi because the multilib build output takes
-          # up too much room on the macos makers
-          - {host: "macos-latest", sample: "arm-picolibc-eabi"}
-
           # Exclude x86_64-w64-mingw32,x86_64-pc-linux-gnu because it crashes on m4 build with
           # a Segmentation fault
           - {host: "macos-latest", sample: "x86_64-w64-mingw32,x86_64-pc-linux-gnu"}
@@ -95,6 +91,7 @@ jobs:
           sed -i -e '/CT_LOG_PROGRESS_BAR/s/y$/n/' .config
           sed -i -e '/CT_LOCAL_TARBALLS_DIR/s/HOME/CT_TOP_DIR/' .config
           sed -i -e '/CT_PREFIX_DIR/s/HOME/CT_TOP_DIR/' .config
+          sed -i -e '/CT_GLIBC_ENABLE_DEBUG/s/y$/n/' .config
           test ${{ matrix.host }} = "macos-latest" && sed -i -e '/CT_GDB_CROSS_PYTHON/s/y$/n/' .config
           ct-ng build
       - name: create ${{ matrix.sample }}.${{ matrix.host }} tarball
