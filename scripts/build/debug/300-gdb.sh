@@ -122,6 +122,14 @@ do_debug_gdb_build()
 
         native_extra_config+=("--program-prefix=")
 
+        # Starting from GDB 11.x, gmp is needed as a dependency to build full
+        # gdb. And if target GMP gets built, explicitly point to installed library,
+        # as otherwise host library might be attempted to be used for target binary
+        # linkage.
+        if [ "${CT_GMP_TARGET}" = "y" ]; then
+            native_extra_config+=("--with-libgmp-prefix=${CT_SYSROOT_DIR}")
+        fi
+
         # gdbserver gets enabled by default with gdb
         # since gdbserver was promoted to top-level
         if [ "${CT_GDB_GDBSERVER_TOPLEVEL}" = "y" ]; then
@@ -348,7 +356,11 @@ do_gdb_backend()
         "${extra_config[@]}"                        \
 
     if [ "${static}" = "y" ]; then
-        extra_make_flags+=("LDFLAGS=${ldflags} -all-static")
+        if [ "${GDB_CC_LD_LIBTOOL}" = "y" ]; then
+            extra_make_flags+=("LDFLAGS=${ldflags} -all-static")
+        else
+            extra_make_flags+=("LDFLAGS=${ldflags} -static")
+        fi
         CT_DoLog EXTRA "Prepare gdb for static build"
         CT_DoExecLog ALL make ${CT_JOBSFLAGS} configure-host
     fi
