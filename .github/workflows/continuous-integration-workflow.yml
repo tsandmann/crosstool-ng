@@ -13,11 +13,11 @@ jobs:
         host: ["ubuntu-22.04", "macos-latest"]
     steps:
       - name: "clone"
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: "prereq Linux"
         if: ${{ runner.os == 'Linux' }}
         run: |
-          sudo apt-get install -y gperf help2man libtool-bin meson ninja-build
+          sudo apt-get update && sudo apt-get install -y bison flex gperf help2man libtool-bin meson ninja-build texinfo
       - name: "prereq macOS"
         if: ${{ runner.os == 'macOS' }}
         run: |
@@ -26,22 +26,25 @@ jobs:
       - name: "build ct-ng"
         run: |
           if [ "$RUNNER_OS" == "macOS" ]; then
-            export PATH="$PATH:/usr/local/opt/binutils/bin"
-            export CPPFLAGS="-I/usr/local/opt/ncurses/include -I/usr/local/opt/gettext/include"
-            export LDFLAGS="-L/usr/local/opt/ncurses/lib -L/usr/local/opt/gettext/lib"
+            PATH="$PATH:$(brew --prefix)/opt/binutils/bin"
+            export PATH
+            CPPFLAGS="-I$(brew --prefix)/opt/ncurses/include -I$(brew --prefix)/opt/gettext/include"
+            export CPPFLAGS
+            LDFLAGS="-L$(brew --prefix)/opt/ncurses/lib -L$(brew --prefix)/opt/gettext/lib"
+            export LDFLAGS
           fi
           ./bootstrap
-          ./configure --prefix=$PWD/.local/
+          ./configure --prefix="$PWD/.local/"
           make
           make install
           tar -cf ct-ng.tar .local/
       - name: "upload ct-ng"
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: crosstool.${{ matrix.host }}
           path: ct-ng.tar
       - name: "upload config.log"
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: config.log.${{ matrix.host }}
           path: config.log
@@ -55,7 +58,7 @@ jobs:
         host: ["ubuntu-22.04"]
     steps:
       - name: "download ct-ng"
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: crosstool.${{ matrix.host }}
       - name: "extract ct-ng"
@@ -63,7 +66,7 @@ jobs:
           tar -xf ct-ng.tar
       - name: cache tarballs
         id: cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: src.tar
           key: src.tar-${{ hashFiles('.local/share/crosstool-ng/packages') }}-${{ hashFiles('.local/share/crosstool-ng/samples') }}
@@ -77,8 +80,8 @@ jobs:
       - name: "prereq Linux"
         if: ${{ runner.os == 'Linux' }}
         run: |
-          sudo apt-get install -y gperf help2man libtool-bin
-          echo "$GITHUB_WORKSPACE/.local/bin" >> $GITHUB_PATH
+          sudo apt-get update && sudo apt-get install -y bison flex gperf help2man libtool-bin texinfo
+          echo "$GITHUB_WORKSPACE/.local/bin" >> "$GITHUB_PATH"
       - name: "ct-ng source"
         run: |
           mkdir -p src
@@ -105,6 +108,7 @@ jobs:
       samples: >-
         [
           "aarch64-unknown-linux-gnu",
+          "aarch64-unknown-linux-musl",
           "arc-multilib-elf32",
           "arc-multilib-linux-gnu",
           "arc-multilib-linux-uclibc",
@@ -116,6 +120,7 @@ jobs:
           "hppa-unknown-linux-gnu",
           "i686-w64-mingw32",
           "loongarch64-unknown-linux-gnu",
+          "loongarch64-unknown-linux-musl",
           "mips-unknown-elf",
           "mips-unknown-linux-gnu",
           "mips64-unknown-linux-gnu",
@@ -132,10 +137,10 @@ jobs:
           "xtensa-fsf-linux-uclibc"
         ]
 
-  canadian-cross:
-    needs: [toolchains]
-    uses: ./.github/workflows/build-toolchains.yml
-    with:
-      samples: >-
-        ["x86_64-w64-mingw32,x86_64-pc-linux-gnu"]
-      canadian-cross: true
+#  canadian-cross:
+#    needs: [toolchains]
+#    uses: ./.github/workflows/build-toolchains.yml
+#    with:
+#      samples: >-
+#        ["x86_64-w64-mingw32,x86_64-pc-linux-gnu"]
+#      canadian-cross: true
