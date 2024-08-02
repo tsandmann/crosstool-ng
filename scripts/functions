@@ -25,6 +25,7 @@ CT_LoadConfig() {
     . "${CT_LIB_DIR}/scripts/build/binutils/${CT_BINUTILS}.sh"
     . "${CT_LIB_DIR}/scripts/build/libc.sh"
     . "${CT_LIB_DIR}/scripts/build/cc/${CT_CC}.sh"
+    . "${CT_LIB_DIR}/scripts/build/linker.sh"
     . "${CT_LIB_DIR}/scripts/build/debug.sh"
     . "${CT_LIB_DIR}/scripts/build/test_suite.sh"
 
@@ -1786,9 +1787,10 @@ CT_Mirrors()
         echo "ftp://ftp.gnu.org/gnu/${project}"
         ;;
     sourceware)
+        echo "https://sourceware.org/${project}/ftp"
         echo "ftp://sourceware.org/pub/${project}"
-        echo "http://mirrors.kernel.org/sourceware/${project}"
-        echo "http://gcc.gnu.org/pub/${project}"
+        echo "https://mirrors.kernel.org/sourceware/${project}"
+        echo "https://gcc.gnu.org/pub/${project}"
         ;;
     Linaro)
         local version="${3}"
@@ -2537,8 +2539,7 @@ CT_InstallConfigurationFile()
     local path="${1}"
     local suffix="${2}"
 
-    CT_DoExecLog ALL mkdir -p "${CT_PREFIX_DIR}/bin"
-    CT_DoExecLog DEBUG ${install} -m 0755 "${CT_LIB_DIR}/scripts/toolchain-config.in" "${CT_PREFIX_DIR}/bin/${CT_TARGET}-${suffix}.config"
-    CT_DoExecLog DEBUG ${sed} -i -e 's,@@grep@@,"'"${grep}"'",;' "${CT_PREFIX_DIR}/bin/${CT_TARGET}-${suffix}.config"
-    bzip2 -c -9 "${path}" >>"${CT_PREFIX_DIR}/bin/${CT_TARGET}-${suffix}.config"
+    CT_DoExecLog ALL mkdir -p "${CT_PREFIX_DIR}/share"
+    CT_DoExecLog DEBUG ${install} -m 0644 "${path}" "${CT_PREFIX_DIR}/share/${CT_TARGET}-${suffix}.config"
+    CT_DoExecLog DEBUG bzip2 -9 "${CT_PREFIX_DIR}/share/${CT_TARGET}-${suffix}.config"
 }

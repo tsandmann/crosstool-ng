@@ -10,7 +10,7 @@ jobs:
     runs-on: ${{ matrix.host }}
     strategy:
       matrix:
-        host: ["ubuntu-22.04", "macos-latest"]
+        host: ["ubuntu-22.04", "macos-12"]
     steps:
       - name: "clone"
         uses: actions/checkout@v4
@@ -22,7 +22,7 @@ jobs:
         if: ${{ runner.os == 'macOS' }}
         run: |
           brew install autoconf automake bash binutils gawk gnu-sed \
-               gnu-tar help2man make ncurses
+               gnu-tar help2man make ncurses texinfo libtool
       - name: "build ct-ng"
         run: |
           if [ "$RUNNER_OS" == "macOS" ]; then
@@ -126,6 +126,7 @@ jobs:
           "mips64-unknown-linux-gnu",
           "powerpc-unknown-linux-gnu",
           "powerpc64-unknown-linux-gnu",
+          "powerpc64-unknown-linux-musl",
           "riscv32-unknown-elf",
           "riscv64-unknown-elf",
           "s390-unknown-linux-gnu",
