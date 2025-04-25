@@ -68,7 +68,7 @@ config GLIBC_DEP_MAKE_4_0
 # where the build process hangs indefinitely
 config GLIBC_DEP_MAKE_4_3
     def_bool y
-    depends on GLIBC_older_than_2_32 && CONFIGURE_has_make_4_4_or_newer
+    depends on GLIBC_older_than_2_32 && (CONFIGURE_has_make_4_4_or_newer || GLIBC_DEP_MAKE_4_0)
     select COMP_TOOLS_MAKE
     select MAKE_GNUMAKE_SYMLINK
     select MAKE_REQUIRE_older_than_4_4
@@ -197,8 +197,8 @@ config GLIBC_ENABLE_DEBUG
 config GLIBC_EXTRA_CFLAGS
     string
     prompt "extra target CFLAGS"
-    default "-Wno-missing-attributes -Wno-array-bounds -Wno-array-parameter -Wno-stringop-overflow -Wno-maybe-uninitialized" if GLIBC_2_29_or_older && GCC_11_or_later
-    default ""
+    default "-Wno-missing-attributes -Wno-array-bounds -Wno-array-parameter -Wno-stringop-overflow -Wno-maybe-uninitialized" if GLIBC_2_29_or_older && GCC_11_or_later && !GCC_14_or_later
+    default "-Wno-missing-attributes -Wno-array-bounds -Wno-array-parameter -Wno-stringop-overflow -Wno-maybe-uninitialized -Wno-implicit-int" if GLIBC_2_29_or_older && GCC_14_or_later
     help
       Extra target CFLAGS to use when building.
 
