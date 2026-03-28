@@ -1,0 +1,12 @@
+--- a/ld/configure.tgt	2024-02-04 17:27:46.779287486 +0100
++++ b/ld/configure.tgt	2024-02-04 17:28:04.607858389 +0100
+@@ -56,7 +56,8 @@
+     mips*-*-* | \
+     microblaze*-*-* | \
+     sparc*-*-* | \
+-    v850*-*-*)
++    v850*-*-* | \
++    arm-*-elf* | arm*-*-eabi*)
+       ac_default_ld_warn_rwx_segments=0
+       ;;
+     *)
