@@ -4,5 +4,4 @@ export PATH=$(brew --prefix)/opt/ncurses/bin:$PATH
 export PATH=$(brew --prefix)/opt/bison/bin/:$PATH
 export OBJCOPY="$(brew --prefix)/opt/binutils/bin/objcopy"
 export READELF="$(brew --prefix)/opt/binutils/bin/readelf"
-export PKG_CONFIG_PATH="/opt/homebrew/opt/ncurses/lib/pkgconfig"
 
