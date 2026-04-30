@@ -39,18 +39,22 @@ create_cmake_toolchain()
 set(CMAKE_SYSTEM_NAME @@SYSTEM@@)
 set(CMAKE_SYSTEM_PROCESSOR @@CT_TARGET_ARCH@@)
 
-set(CMAKE_C_COMPILER \${CMAKE_CURRENT_LIST_DIR}/bin/@@CT_TARGET@@-gcc)
-set(CMAKE_CXX_COMPILER \${CMAKE_CURRENT_LIST_DIR}/bin/@@CT_TARGET@@-g++)
+set(CMAKE_C_COMPILER \"\${CMAKE_CURRENT_LIST_DIR}/bin/@@CT_TARGET@@-gcc\" CACHE INTERNAL \"\")
+set(CMAKE_CXX_COMPILER \"\${CMAKE_CURRENT_LIST_DIR}/bin/@@CT_TARGET@@-g++\" CACHE INTERNAL \"\")
 
 set(CMAKE_FIND_ROOT_PATH \${CMAKE_CURRENT_LIST_DIR}/@@CT_TARGET@@/sysroot)
 set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
 set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
 set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
-set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)" \
+set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
+
+set(PICO_TOOLCHAIN_PATH \"\${CMAKE_CURRENT_LIST_DIR}/bin\" CACHE INTERNAL \"\")
+set(PICO_GCC_TRIPLE \"@@CT_TARGET@@\" CACHE INTERNAL \"\")
+" \
     | sed -r -e 's|@@SYSTEM@@|'"${system}"'|g;'       \
              -e 's|@@CT_TARGET@@|'"${CT_TARGET}"'|g;' \
              -e 's|@@CT_TARGET_ARCH@@|'"${CT_TARGET_ARCH}"'|g;'     \
-             > "${CT_PREFIX_DIR}/toolchain.cmake"
+             > "${CT_PREFIX_DIR}/${CT_TARGET}-toolchain.cmake"
 }
 
 # This step is called once all components were built, to remove
@@ -182,7 +186,7 @@ do_finish() {
         (cd "${CT_PREFIX_DIR}" && \
             find ./. -print0 | \
                 LC_ALL=C sort -z | \
-                tar --numeric-owner --owner=0 --group=0 \
+                gtar --exclude='./.git' --numeric-owner --owner=0 --group=0 \
                     --transform "s,^\./\.,${CT_TARBALL_RESULT_FILENAME},S" \
                     --no-recursion --null -T - -Jcf "${tarball}")
         CT_DoLog EXTRA "Calculating binary toolchain checksum"
