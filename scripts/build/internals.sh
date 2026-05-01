@@ -37,24 +37,71 @@ create_cmake_toolchain()
 
     echo "\
 set(CMAKE_SYSTEM_NAME @@SYSTEM@@)
-set(CMAKE_SYSTEM_PROCESSOR @@CT_TARGET_ARCH@@)
+set(CMAKE_SYSTEM_PROCESSOR @@CT_ARCH_CPU@@)
 
-set(CMAKE_C_COMPILER \"\${CMAKE_CURRENT_LIST_DIR}/bin/@@CT_TARGET@@-gcc\" CACHE INTERNAL \"\")
-set(CMAKE_CXX_COMPILER \"\${CMAKE_CURRENT_LIST_DIR}/bin/@@CT_TARGET@@-g++\" CACHE INTERNAL \"\")
+set(CMAKE_C_COMPILER \"\${CMAKE_CURRENT_LIST_DIR}/bin/@@CT_TARGET@@-gcc\")
+set(CMAKE_CXX_COMPILER \"\${CMAKE_CURRENT_LIST_DIR}/bin/@@CT_TARGET@@-g++\")
+set(CMAKE_ASM_COMPILER \"\${CMAKE_CURRENT_LIST_DIR}/bin/@@CT_TARGET@@-gcc\")
 
-set(CMAKE_FIND_ROOT_PATH \${CMAKE_CURRENT_LIST_DIR}/@@CT_TARGET@@/sysroot)
+set(CMAKE_INCLUDE_FLAG_ASM \"-I\")
+set(CMAKE_C_OUTPUT_EXTENSION .o)
+set(CMAKE_CXX_OUTPUT_EXTENSION .o)
+set(CMAKE_ASM_OUTPUT_EXTENSION .o)
+
+set(CMAKE_FIND_ROOT_PATH \${CMAKE_CURRENT_LIST_DIR}/@@CT_TARGET@@)
 set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
 set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
 set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
 set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
 
-set(PICO_TOOLCHAIN_PATH \"\${CMAKE_CURRENT_LIST_DIR}/bin\" CACHE INTERNAL \"\")
-set(PICO_GCC_TRIPLE \"@@CT_TARGET@@\" CACHE INTERNAL \"\")
+get_property(IS_IN_TRY_COMPILE GLOBAL PROPERTY IN_TRY_COMPILE)
+if(IS_IN_TRY_COMPILE)
+    set(CMAKE_C_LINK_FLAGS \"\${CMAKE_C_LINK_FLAGS} -nostdlib\")
+    set(CMAKE_CXX_LINK_FLAGS \"\${CMAKE_CXX_LINK_FLAGS} -nostdlib\")
+    set(CMAKE_ASM_LINK_FLAGS \"\${CMAKE_ASM_LINK_FLAGS} -nostdlib\")
+endif()
 " \
-    | sed -r -e 's|@@SYSTEM@@|'"${system}"'|g;'       \
+    | sed -r -e 's|@@SYSTEM@@|'"${system}"'|g;' \
              -e 's|@@CT_TARGET@@|'"${CT_TARGET}"'|g;' \
-             -e 's|@@CT_TARGET_ARCH@@|'"${CT_TARGET_ARCH}"'|g;'     \
-             > "${CT_PREFIX_DIR}/${CT_TARGET}-toolchain.cmake"
+             -e 's|@@CT_ARCH_CPU@@|'"${CT_ARCH_CPU}"'|g;' \
+             > "${CT_PREFIX_DIR}/toolchain-${CT_TARGET}.cmake"
+
+
+    if [ "${CT_ARCH_CPU}" = "cortex-m33" ] || [ "${CT_ARCH_CPU}" = "cortex-m0plus" ]; then
+        echo "\
+include(\${CMAKE_CURRENT_LIST_DIR}/toolchain-@@CT_TARGET@@.cmake)
+
+set(PICO_TOOLCHAIN_PATH \"\${CMAKE_CURRENT_LIST_DIR}/bin\" CACHE STRING \"Path to the @@CT_TARGET@@ toolchain\")
+set(PICO_GCC_TRIPLE \"@@CT_TARGET@@\" CACHE STRING \"GCC target triple for builds\")
+
+set(PICO_COMMON_LANG_FLAGS \"-mcpu=@@CT_ARCH_CPU@@ -mthumb @@CT_TARGET_CFLAGS@@ -mfloat-abi=@@CT_ARCH_FLOAT@@\" CACHE STRING \"Common language flags for builds\")
+
+set(CMAKE_SYSTEM_NAME PICO)
+
+option(PICO_DEOPTIMIZED_DEBUG \"Build debug builds with -O0\" 0)
+option(PICO_DEBUG_INFO_IN_RELEASE \"Include debug info in release builds\" 1)
+
+foreach(LANG IN ITEMS C CXX ASM)
+    set(CMAKE_\${LANG}_FLAGS_INIT \"\${PICO_COMMON_LANG_FLAGS}\")
+    unset(CMAKE_\${LANG}_FLAGS_DEBUG CACHE)
+    if (PICO_DEOPTIMIZED_DEBUG)
+        set(CMAKE_\${LANG}_FLAGS_DEBUG_INIT \"-O0\")
+    else()
+        set(CMAKE_\${LANG}_FLAGS_DEBUG_INIT \"-Og\")
+    endif()
+    if (PICO_DEBUG_INFO_IN_RELEASE)
+        set(CMAKE_\${LANG}_FLAGS_RELEASE_INIT \"-g\")
+        set(CMAKE_\${LANG}_FLAGS_MINSIZEREL_INIT \"-g\")
+    endif()
+    set(CMAKE_\${LANG}_LINK_FLAGS \"\${CMAKE_\${LANG}_LINK_FLAGS} -Wl,--build-id=none\")
+endforeach()
+" \
+        | sed -r -e 's|@@CT_TARGET@@|'"${CT_TARGET}"'|g;' \
+              -e 's|@@CT_ARCH_CPU@@|'"${CT_ARCH_CPU}"'|g;' \
+              -e 's|@@CT_TARGET_CFLAGS@@|'"${CT_TARGET_CFLAGS}"'|g;' \
+              -e 's|@@CT_ARCH_FLOAT@@|'"${CT_ARCH_FLOAT}"'|g;' \
+              > "${CT_PREFIX_DIR}/toolchain_pico-${CT_TARGET}.cmake"
+    fi
 }
 
 # This step is called once all components were built, to remove
