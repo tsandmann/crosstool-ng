@@ -77,6 +77,7 @@ set(PICO_GCC_TRIPLE \"@@CT_TARGET@@\" CACHE STRING \"GCC target triple for build
 set(PICO_COMMON_LANG_FLAGS \"-mcpu=@@CT_ARCH_CPU@@ -mthumb @@CT_TARGET_CFLAGS@@ -mfloat-abi=@@CT_ARCH_FLOAT@@\" CACHE STRING \"Common language flags for builds\")
 
 set(CMAKE_SYSTEM_NAME PICO)
+set(PICO_CLIB @@CT_LIBC@@)
 
 option(PICO_DEOPTIMIZED_DEBUG \"Build debug builds with -O0\" 0)
 option(PICO_DEBUG_INFO_IN_RELEASE \"Include debug info in release builds\" 1)
@@ -100,6 +101,7 @@ endforeach()
               -e 's|@@CT_ARCH_CPU@@|'"${CT_ARCH_CPU}"'|g;' \
               -e 's|@@CT_TARGET_CFLAGS@@|'"${CT_TARGET_CFLAGS}"'|g;' \
               -e 's|@@CT_ARCH_FLOAT@@|'"${CT_ARCH_FLOAT}"'|g;' \
+              -e 's|@@CT_LIBC@@|'"${CT_LIBC}"'|g;' \
               > "${CT_PREFIX_DIR}/toolchain_pico-${CT_TARGET}.cmake"
     fi
 }
