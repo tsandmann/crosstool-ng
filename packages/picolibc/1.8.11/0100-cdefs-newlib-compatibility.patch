@@ -1,0 +1,29 @@
+--- a/libc/include/sys/cdefs.h	2025-04-16 19:35:23
++++ b/libc/include/sys/cdefs.h	2025-04-16 19:35:23
+@@ -97,8 +97,26 @@
+ 
+ #if __has_attribute(__format__)
+ #define __picolibc_format(a, b, c) __attribute__((__format__(a, b, c)))
++#define __printflike(fmtarg, firstvararg) \
++        __attribute__((__format__ (__printf__, fmtarg, firstvararg)))
++#define __scanflike(fmtarg, firstvararg) \
++        __attribute__((__format__ (__scanf__, fmtarg, firstvararg)))
++#define __strfmonlike(fmtarg, firstvararg) \
++        __attribute__((__format__ (__strfmon__, fmtarg, firstvararg)))
++#define __strftimelike(fmtarg, firstvararg) \
++        __attribute__((__format__ (__strftime__, fmtarg, firstvararg)))
+ #else
+ #define __picolibc_format(a, b, c)
++#define __printflike(fmtarg, firstvararg)
++#define __scanflike(fmtarg, firstvararg)
++#define __strfmonlike(fmtarg, firstvararg)
++#define __strftimelike(fmtarg, firstvararg)
++#endif
++
++#if __has_attribute(__format_arg__)
++#define __format_arg(fmtarg) __attribute__((__format_arg__ (fmtarg)))
++#else
++#define __format_arg(fmtarg)
+ #endif
+ 
+ #if __has_attribute(__nonnull__)

@@ -26,7 +26,6 @@ do_picolibc_common_install() {
 
     yn_args="IO_C99FMT:io-c99-formats
 IO_LL:io-long-long
-NANO_MALLOC:newlib-nano-malloc
     "
 
     for ynarg in $yn_args; do
@@ -77,17 +76,23 @@ NANO_MALLOC:newlib-nano-malloc
         for cflag in ${cflags_for_target}; do
             meson_cflags="${meson_cflags} '${cflag}',"
         done
+
+        local -l target_arch="${CT_TARGET_ARCH}"
+        if [ "${CT_ARCH}" = "sh" ]; then
+            target_arch="sh"
+        fi
         cat << EOF > picolibc-cross.txt
 [binaries]
 c = '${CT_TARGET}-${CT_CC}'
-ar = '${CT_TARGET}-ar'
+ar = '${CT_TARGET}-gcc-ar'
 as = '${CT_TARGET}-as'
+nm = '${CT_TARGET}-gcc-nm'
 strip = '${CT_TARGET}-strip'
 
 [host_machine]
 system = '${CT_TARGET_VENDOR}'
-cpu_family = '${CT_TARGET_ARCH}'
-cpu = '${CT_TARGET_ARCH}'
+cpu_family = '${target_arch}'
+cpu = '${target_arch}'
 endian = '${CT_ARCH_ENDIAN}'
 
 [properties]
