@@ -229,13 +229,22 @@ do_finish() {
     fi
 
     if [ "${CT_TARBALL_RESULT}" = y ]; then
+        case "$CT_HOST" in
+            *darwin*)
+                tar_tool="gtar"
+                ;;
+            *)
+                tar_tool="tar"
+                ;;
+        esac
+
         tarball="${CT_TARBALL_RESULT_DIR}/${CT_TARBALL_RESULT_FILENAME}.tar.xz"
         CT_DoLog EXTRA "Creating binary toolchain tarball: ${tarball}"
         cp "${CT_TOP_DIR}/.config" "${CT_PREFIX_DIR}/${CT_TOOLCHAIN_PKGVERSION}.config"
         (cd "${CT_PREFIX_DIR}" && \
             find ./. -print0 | \
                 LC_ALL=C sort -z | \
-                gtar --exclude='./.git' --numeric-owner --owner=0 --group=0 \
+                ${tar_tool} --exclude='./.git' --numeric-owner --owner=0 --group=0 \
                     --transform "s,^\./\.,${CT_TARBALL_RESULT_FILENAME},S" \
                     --no-recursion --null -T - -Jcf "${tarball}")
         CT_DoLog EXTRA "Calculating binary toolchain checksum"
