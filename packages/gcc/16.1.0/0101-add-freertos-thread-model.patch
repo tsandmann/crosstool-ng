@@ -197,8 +197,8 @@ diff -urN a/libgcc/config/gthr-freertos-default.c b/libgcc/config/gthr-freertos-
 +__gthr_frtos_cond_destroy (__gthread_cond_t *__c) { (void) __c; return 0; }
 diff -urN a/libgcc/config/gthr-freertos.h b/libgcc/config/gthr-freertos.h
 --- a/libgcc/config/gthr-freertos.h	1970-01-01 01:00:00
-+++ b/libgcc/config/gthr-freertos.h	2026-06-04 17:15:20
-@@ -0,0 +1,265 @@
++++ b/libgcc/config/gthr-freertos.h	2026-06-04 19:30:00
+@@ -0,0 +1,289 @@
 +/* Threads-compatibility routines for libgcc2 and libstdc++: FreeRTOS thread model.
 +
 +   Copyright (C) 1997-2026 Free Software Foundation, Inc.
@@ -250,6 +250,16 @@ diff -urN a/libgcc/config/gthr-freertos.h b/libgcc/config/gthr-freertos.h
 +#define __GTHREAD_MUTEX_INIT { { 0, 0 } }
 +#define __GTHREAD_RECURSIVE_MUTEX_INIT { { 0, 0 } }
 +#define __GTHREAD_COND_INIT { { 0, 0 } }
++
++/* Runtime (re-)init. Static __GTHREAD_*_INIT above is preferred by libstdc++
++   (keeps the constexpr mutex ctor); these function forms exist because libgcc
++   (libgcov __gcov_fork) calls __GTHREAD_MUTEX_INIT_FUNCTION unconditionally to
++   reset a mutex in the forked child. Resetting to the zero/INIT state is exactly
++   right for the lazy-creation model: the next lock recreates the handle. (No
++   backend hook needed; fork never happens on the FreeRTOS target — this only has
++   to compile for the libgcc host-profiling code.) */
++#define __GTHREAD_MUTEX_INIT_FUNCTION __gthread_mutex_init_function
++#define __GTHREAD_RECURSIVE_MUTEX_INIT_FUNCTION __gthread_recursive_mutex_init_function
 +
 +/* --- application/BSP-provided hooks (weak no-op defaults live in libgcc) ------ */
 +
@@ -362,6 +372,20 @@ diff -urN a/libgcc/config/gthr-freertos.h b/libgcc/config/gthr-freertos.h
 +  return __gthr_frtos_setspecific (__key, __ptr);
 +}
 +
++static inline void
++__gthread_mutex_init_function (__gthread_mutex_t *__mutex)
++{
++  __mutex->__opaque[0] = 0;
++  __mutex->__opaque[1] = 0;
++}
++
++static inline void
++__gthread_recursive_mutex_init_function (__gthread_recursive_mutex_t *__mutex)
++{
++  __mutex->__opaque[0] = 0;
++  __mutex->__opaque[1] = 0;
++}
++
 +static inline int
 +__gthread_mutex_destroy (__gthread_mutex_t *__mutex)
 +{
@@ -464,7 +488,7 @@ diff -urN a/libgcc/config/gthr-freertos.h b/libgcc/config/gthr-freertos.h
 +#endif
 +
 +#endif /* ! GCC_GTHR_FREERTOS_H */
-diff -urN a/libgcc/config/t-gthr-freertos b/libgcc/config/t-gthr-freertos
+
 --- a/libgcc/config/t-gthr-freertos	1970-01-01 01:00:00
 +++ b/libgcc/config/t-gthr-freertos	2026-06-04 17:15:20
 @@ -0,0 +1,3 @@
@@ -511,3 +535,25 @@ diff -urN a/libstdc++-v3/configure b/libstdc++-v3/configure
      gcn)	thread_header=config/gcn/gthr-gcn.h ;;
      lynx)	thread_header=config/gthr-lynx.h ;;
      mipssde)	thread_header=config/mips/gthr-mipssde.h ;;
+--- a/gcc/configure
++++ b/gcc/configure
+@@ -13220,7 +13220,7 @@
+     target_thread_file='single'
+     ;;
+   aix | dce | lynx | mipssde | posix | rtems | \
+-  single | tpf | vxworks | win32 | mcf)
++  single | tpf | vxworks | win32 | mcf | freertos)
+     target_thread_file=${enable_threads}
+     ;;
+   *)
+--- a/gcc/configure.ac
++++ b/gcc/configure.ac
+@@ -2110,7 +2110,7 @@
+     target_thread_file='single'
+     ;;
+   aix | dce | lynx | mipssde | posix | rtems | \
+-  single | tpf | vxworks | win32 | mcf)
++  single | tpf | vxworks | win32 | mcf | freertos)
+     target_thread_file=${enable_threads}
+     ;;
+   *)

@@ -311,10 +311,19 @@ do_gcc_core_backend() {
         exec_prefix="${prefix}"
     fi
 
+    # The core bootstrap compiler (build_step=core) is built before libc exists and
+    # must stay thread-less. The final bare-metal compiler (gcc_build/gcc_host/libstdcxx
+    # all route through this function via do_cc_for_host) honours CT_THREADS, so a custom
+    # thread model such as 'freertos' actually reaches libgcc + libstdc++.
+    local core_threads="no"
+    if [ "${build_step}" != "core" ] && [ "${CT_THREADS}" = "freertos" ]; then
+        core_threads="freertos"
+    fi
+
     case "${mode}" in
         static)
             extra_config+=("--with-newlib")
-            extra_config+=("--enable-threads=no")
+            extra_config+=("--enable-threads=${core_threads}")
             extra_config+=("--disable-shared")
             ;;
         shared)
@@ -322,7 +331,7 @@ do_gcc_core_backend() {
             ;;
         baremetal)
             extra_config+=("--with-newlib")
-            extra_config+=("--enable-threads=no")
+            extra_config+=("--enable-threads=${core_threads}")
             extra_config+=("--disable-shared")
             ;;
         *)
