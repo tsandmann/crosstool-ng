@@ -1,0 +1,513 @@
+diff -urN a/config/gthr.m4 b/config/gthr.m4
+--- a/config/gthr.m4	2026-06-04 17:13:15
++++ b/config/gthr.m4	2026-06-04 17:13:33
+@@ -33,6 +33,7 @@
+ case $1 in
+     aix)	thread_header=config/rs6000/gthr-aix.h ;;
+     dce)	thread_header=config/pa/gthr-dce.h ;;
++    freertos)	thread_header=config/gthr-freertos.h ;;
+     gcn)	thread_header=config/gcn/gthr-gcn.h ;;
+     lynx)	thread_header=config/gthr-lynx.h ;;
+     mipssde)	thread_header=config/mips/gthr-mipssde.h ;;
+diff -urN a/gcc/config.gcc b/gcc/config.gcc
+--- a/gcc/config.gcc	2026-06-04 17:13:15
++++ b/gcc/config.gcc	2026-06-04 17:14:06
+@@ -1556,6 +1556,11 @@
+ 	tm_file="elfos.h arm/unknown-elf.h arm/elf.h arm/bpabi.h"
+ 	tmake_file="${tmake_file} arm/t-arm arm/t-arm-elf"
+ 	target_cpu_cname="arm7tdmi"
++	# Custom FreeRTOS gthr model (libgcc/config/gthr-freertos.h); opt-in via
++	# --enable-threads=freertos. Other values keep the default (single).
++	case ${enable_threads} in
++	  freertos) thread_file='freertos' ;;
++	esac
+ 	case ${target} in
+ 	arm*-*-eabi*)
+ 	  tm_file="$tm_file newlib-stdint.h"
+diff -urN a/libgcc/config/gthr-freertos-default.c b/libgcc/config/gthr-freertos-default.c
+--- a/libgcc/config/gthr-freertos-default.c	1970-01-01 01:00:00
++++ b/libgcc/config/gthr-freertos-default.c	2026-06-04 17:15:20
+@@ -0,0 +1,167 @@
++/* Weak single-threaded/no-op defaults for the FreeRTOS gthr model.
++
++   Copyright (c) 2026 Timo Sandmann. GCC Runtime Library Exception applies
++   (this is compiled into libgcc alongside gthr-freertos.h).
++
++   Purpose: keep the toolchain general-purpose. A program that links a real
++   FreeRTOS backend (strong `__gthr_frtos_*` symbols, e.g. an in-tree provided
++   library) overrides every hook below. A program that links *no* backend
++   (plain bare-metal / non-FreeRTOS) falls back to these weak defaults:
++   `__gthr_frtos_active()` returns 0, so libstdc++ takes its single-threaded
++   fast paths; the mutex/cond/once/key hooks behave as a correct single-threaded
++   implementation so anything that still calls them links and runs. `create`
++   fails (no scheduler) — std::thread is inert without a backend, as expected. */
++
++/* In libgcc this resolves via gthr.h -> the generated gthr-default.h (== the
++   freertos model header). Standalone, point the include path at this directory. */
++#include "gthr.h"
++
++#include <stddef.h>
++
++#define __gthr_weak __attribute__ ((weak))
++
++/* Active flag: no real threads unless a strong backend overrides this. */
++__gthr_weak int
++__gthr_frtos_active (void)
++{
++  return 0;
++}
++
++/* Thread lifecycle: cannot spawn without a scheduler. */
++__gthr_weak int
++__gthr_frtos_create (__gthread_t *__thr, void *(*__func) (void *), void *__args)
++{
++  (void) __thr; (void) __func; (void) __args;
++  return -1;
++}
++
++__gthr_weak int
++__gthr_frtos_join (__gthread_t __thr, void **__value_ptr)
++{
++  (void) __thr; (void) __value_ptr;
++  return -1;
++}
++
++__gthr_weak int
++__gthr_frtos_detach (__gthread_t __thr)
++{
++  (void) __thr;
++  return -1;
++}
++
++__gthr_weak int
++__gthr_frtos_equal (__gthread_t __t1, __gthread_t __t2)
++{
++  return __t1 == __t2;
++}
++
++__gthr_weak __gthread_t
++__gthr_frtos_self (void)
++{
++  return (__gthread_t) 0;
++}
++
++__gthr_weak int
++__gthr_frtos_yield (void)
++{
++  return 0;
++}
++
++/* once: single-threaded — run the function exactly once. */
++__gthr_weak int
++__gthr_frtos_once (__gthread_once_t *__once, void (*__func) (void))
++{
++  if (__once != NULL && *__once == 0)
++    {
++      *__once = 1;
++      if (__func != NULL)
++	__func ();
++    }
++  return 0;
++}
++
++/* Thread-specific data: single-threaded => one global slot table. */
++#ifndef __GTHR_FRTOS_DEFAULT_KEYS
++#define __GTHR_FRTOS_DEFAULT_KEYS 16
++#endif
++static void *__gthr_frtos_tls[__GTHR_FRTOS_DEFAULT_KEYS];
++static int __gthr_frtos_next_key;
++
++__gthr_weak int
++__gthr_frtos_key_create (__gthread_key_t *__key, void (*__dtor) (void *))
++{
++  (void) __dtor;
++  if (__key == NULL || __gthr_frtos_next_key >= __GTHR_FRTOS_DEFAULT_KEYS)
++    return -1;
++  *__key = __gthr_frtos_next_key++;
++  __gthr_frtos_tls[*__key] = NULL;
++  return 0;
++}
++
++__gthr_weak int
++__gthr_frtos_key_delete (__gthread_key_t __key)
++{
++  (void) __key;
++  return 0;
++}
++
++__gthr_weak void *
++__gthr_frtos_getspecific (__gthread_key_t __key)
++{
++  if (__key < 0 || __key >= __GTHR_FRTOS_DEFAULT_KEYS)
++    return NULL;
++  return __gthr_frtos_tls[__key];
++}
++
++__gthr_weak int
++__gthr_frtos_setspecific (__gthread_key_t __key, const void *__ptr)
++{
++  if (__key < 0 || __key >= __GTHR_FRTOS_DEFAULT_KEYS)
++    return -1;
++  __gthr_frtos_tls[__key] = (void *) __ptr;
++  return 0;
++}
++
++/* Mutexes: single-threaded => uncontended no-ops that always succeed. */
++__gthr_weak int
++__gthr_frtos_mutex_destroy (__gthread_mutex_t *__m) { (void) __m; return 0; }
++__gthr_weak int
++__gthr_frtos_mutex_lock (__gthread_mutex_t *__m) { (void) __m; return 0; }
++__gthr_weak int
++__gthr_frtos_mutex_trylock (__gthread_mutex_t *__m) { (void) __m; return 0; }
++__gthr_weak int
++__gthr_frtos_mutex_timedlock (__gthread_mutex_t *__m, const __gthread_time_t *__t)
++{ (void) __m; (void) __t; return 0; }
++__gthr_weak int
++__gthr_frtos_mutex_unlock (__gthread_mutex_t *__m) { (void) __m; return 0; }
++
++__gthr_weak int
++__gthr_frtos_recursive_mutex_destroy (__gthread_recursive_mutex_t *__m) { (void) __m; return 0; }
++__gthr_weak int
++__gthr_frtos_recursive_mutex_lock (__gthread_recursive_mutex_t *__m) { (void) __m; return 0; }
++__gthr_weak int
++__gthr_frtos_recursive_mutex_trylock (__gthread_recursive_mutex_t *__m) { (void) __m; return 0; }
++__gthr_weak int
++__gthr_frtos_recursive_mutex_timedlock (__gthread_recursive_mutex_t *__m, const __gthread_time_t *__t)
++{ (void) __m; (void) __t; return 0; }
++__gthr_weak int
++__gthr_frtos_recursive_mutex_unlock (__gthread_recursive_mutex_t *__m) { (void) __m; return 0; }
++
++/* Condition variables: single-threaded => no waiters can exist, so wait is a
++   logic error but we degrade to "return immediately"; signal/broadcast no-op. */
++__gthr_weak int
++__gthr_frtos_cond_broadcast (__gthread_cond_t *__c) { (void) __c; return 0; }
++__gthr_weak int
++__gthr_frtos_cond_signal (__gthread_cond_t *__c) { (void) __c; return 0; }
++__gthr_weak int
++__gthr_frtos_cond_wait (__gthread_cond_t *__c, __gthread_mutex_t *__m)
++{ (void) __c; (void) __m; return 0; }
++__gthr_weak int
++__gthr_frtos_cond_wait_recursive (__gthread_cond_t *__c, __gthread_recursive_mutex_t *__m)
++{ (void) __c; (void) __m; return 0; }
++__gthr_weak int
++__gthr_frtos_cond_timedwait (__gthread_cond_t *__c, __gthread_mutex_t *__m,
++			     const __gthread_time_t *__t)
++{ (void) __c; (void) __m; (void) __t; return 0; }
++__gthr_weak int
++__gthr_frtos_cond_destroy (__gthread_cond_t *__c) { (void) __c; return 0; }
+diff -urN a/libgcc/config/gthr-freertos.h b/libgcc/config/gthr-freertos.h
+--- a/libgcc/config/gthr-freertos.h	1970-01-01 01:00:00
++++ b/libgcc/config/gthr-freertos.h	2026-06-04 17:15:20
+@@ -0,0 +1,265 @@
++/* Threads-compatibility routines for libgcc2 and libstdc++: FreeRTOS thread model.
++
++   Copyright (C) 1997-2026 Free Software Foundation, Inc.
++   FreeRTOS model (c) 2026 Timo Sandmann.
++
++   This file is part of GCC (installed as libgcc/config/gthr-freertos.h and
++   selected by --enable-threads=freertos). It carries the GCC Runtime Library
++   Exception like the other gthr-*.h models.
++
++   Design: this header is **RTOS-agnostic** — it defines the gthr ABI (types,
++   __GTHREAD_*_INIT macros, inline __gthread_* wrappers) and forwards every
++   operation to thin `__gthr_frtos_*` hooks. The actual FreeRTOS implementation
++   is provided *by the application/BSP* (strong symbols), so building the
++   toolchain itself needs no FreeRTOS / FreeRTOSConfig.h. libgcc ships **weak**
++   single-threaded/no-op defaults for all hooks (gthr-freertos-default.c), so a
++   program that links no backend degrades cleanly to single-threaded and a plain
++   C / non-FreeRTOS build keeps working. The opaque storage blobs below are sized
++   to hold the backend's per-object state without exposing FreeRTOS types here. */
++
++#ifndef GCC_GTHR_FREERTOS_H
++#define GCC_GTHR_FREERTOS_H
++
++#define __GTHREADS 1
++#define __GTHREADS_CXX0X 1
++#define __GTHREAD_HAS_COND 1
++
++#include <time.h>     /* struct timespec for __gthread_time_t (no RTOS dependency) */
++#include <errno.h>
++
++#ifdef __cplusplus
++extern "C" {
++#endif
++
++/* --- gthr types (opaque storage; the backend reinterprets the blobs) --------- */
++
++typedef void *__gthread_t;             /* backend thread-control-block pointer    */
++typedef int   __gthread_key_t;         /* TLS key index                           */
++typedef int   __gthread_once_t;        /* 0 = not run, see backend for run states */
++typedef struct timespec __gthread_time_t;
++
++/* Storage big enough for the backend's lazily-created handle + bookkeeping. Two
++   pointers/longs is ample (e.g. { SemaphoreHandle_t, init-flag }). Zero-init must
++   mean "fresh / not yet created" — the backend lazy-initialises on first use. */
++typedef struct { long __opaque[2]; } __gthread_mutex_t;
++typedef struct { long __opaque[2]; } __gthread_recursive_mutex_t;
++typedef struct { long __opaque[2]; } __gthread_cond_t;
++
++#define __GTHREAD_ONCE_INIT 0
++#define __GTHREAD_MUTEX_INIT { { 0, 0 } }
++#define __GTHREAD_RECURSIVE_MUTEX_INIT { { 0, 0 } }
++#define __GTHREAD_COND_INIT { { 0, 0 } }
++
++/* --- application/BSP-provided hooks (weak no-op defaults live in libgcc) ------ */
++
++extern int  __gthr_frtos_active (void);
++
++extern int  __gthr_frtos_create (__gthread_t *, void *(*) (void *), void *);
++extern int  __gthr_frtos_join (__gthread_t, void **);
++extern int  __gthr_frtos_detach (__gthread_t);
++extern int  __gthr_frtos_equal (__gthread_t, __gthread_t);
++extern __gthread_t __gthr_frtos_self (void);
++extern int  __gthr_frtos_yield (void);
++
++extern int  __gthr_frtos_once (__gthread_once_t *, void (*) (void));
++
++extern int  __gthr_frtos_key_create (__gthread_key_t *, void (*) (void *));
++extern int  __gthr_frtos_key_delete (__gthread_key_t);
++extern void *__gthr_frtos_getspecific (__gthread_key_t);
++extern int  __gthr_frtos_setspecific (__gthread_key_t, const void *);
++
++extern int  __gthr_frtos_mutex_destroy (__gthread_mutex_t *);
++extern int  __gthr_frtos_mutex_lock (__gthread_mutex_t *);
++extern int  __gthr_frtos_mutex_trylock (__gthread_mutex_t *);
++extern int  __gthr_frtos_mutex_timedlock (__gthread_mutex_t *, const __gthread_time_t *);
++extern int  __gthr_frtos_mutex_unlock (__gthread_mutex_t *);
++
++extern int  __gthr_frtos_recursive_mutex_destroy (__gthread_recursive_mutex_t *);
++extern int  __gthr_frtos_recursive_mutex_lock (__gthread_recursive_mutex_t *);
++extern int  __gthr_frtos_recursive_mutex_trylock (__gthread_recursive_mutex_t *);
++extern int  __gthr_frtos_recursive_mutex_timedlock (__gthread_recursive_mutex_t *, const __gthread_time_t *);
++extern int  __gthr_frtos_recursive_mutex_unlock (__gthread_recursive_mutex_t *);
++
++extern int  __gthr_frtos_cond_broadcast (__gthread_cond_t *);
++extern int  __gthr_frtos_cond_signal (__gthread_cond_t *);
++extern int  __gthr_frtos_cond_wait (__gthread_cond_t *, __gthread_mutex_t *);
++extern int  __gthr_frtos_cond_wait_recursive (__gthread_cond_t *, __gthread_recursive_mutex_t *);
++extern int  __gthr_frtos_cond_timedwait (__gthread_cond_t *, __gthread_mutex_t *, const __gthread_time_t *);
++extern int  __gthr_frtos_cond_destroy (__gthread_cond_t *);
++
++/* --- gthr interface (thin inline forwarders) --------------------------------- */
++
++static inline int
++__gthread_active_p (void)
++{
++  return __gthr_frtos_active ();
++}
++
++static inline int
++__gthread_create (__gthread_t *__thr, void *(*__func) (void *), void *__args)
++{
++  return __gthr_frtos_create (__thr, __func, __args);
++}
++
++static inline int
++__gthread_join (__gthread_t __thr, void **__value_ptr)
++{
++  return __gthr_frtos_join (__thr, __value_ptr);
++}
++
++static inline int
++__gthread_detach (__gthread_t __thr)
++{
++  return __gthr_frtos_detach (__thr);
++}
++
++static inline int
++__gthread_equal (__gthread_t __t1, __gthread_t __t2)
++{
++  return __gthr_frtos_equal (__t1, __t2);
++}
++
++static inline __gthread_t
++__gthread_self (void)
++{
++  return __gthr_frtos_self ();
++}
++
++static inline int
++__gthread_yield (void)
++{
++  return __gthr_frtos_yield ();
++}
++
++static inline int
++__gthread_once (__gthread_once_t *__once, void (*__func) (void))
++{
++  return __gthr_frtos_once (__once, __func);
++}
++
++static inline int
++__gthread_key_create (__gthread_key_t *__key, void (*__dtor) (void *))
++{
++  return __gthr_frtos_key_create (__key, __dtor);
++}
++
++static inline int
++__gthread_key_delete (__gthread_key_t __key)
++{
++  return __gthr_frtos_key_delete (__key);
++}
++
++static inline void *
++__gthread_getspecific (__gthread_key_t __key)
++{
++  return __gthr_frtos_getspecific (__key);
++}
++
++static inline int
++__gthread_setspecific (__gthread_key_t __key, const void *__ptr)
++{
++  return __gthr_frtos_setspecific (__key, __ptr);
++}
++
++static inline int
++__gthread_mutex_destroy (__gthread_mutex_t *__mutex)
++{
++  return __gthr_frtos_mutex_destroy (__mutex);
++}
++
++static inline int
++__gthread_mutex_lock (__gthread_mutex_t *__mutex)
++{
++  return __gthr_frtos_mutex_lock (__mutex);
++}
++
++static inline int
++__gthread_mutex_trylock (__gthread_mutex_t *__mutex)
++{
++  return __gthr_frtos_mutex_trylock (__mutex);
++}
++
++static inline int
++__gthread_mutex_timedlock (__gthread_mutex_t *__mutex, const __gthread_time_t *__abs)
++{
++  return __gthr_frtos_mutex_timedlock (__mutex, __abs);
++}
++
++static inline int
++__gthread_mutex_unlock (__gthread_mutex_t *__mutex)
++{
++  return __gthr_frtos_mutex_unlock (__mutex);
++}
++
++static inline int
++__gthread_recursive_mutex_destroy (__gthread_recursive_mutex_t *__mutex)
++{
++  return __gthr_frtos_recursive_mutex_destroy (__mutex);
++}
++
++static inline int
++__gthread_recursive_mutex_lock (__gthread_recursive_mutex_t *__mutex)
++{
++  return __gthr_frtos_recursive_mutex_lock (__mutex);
++}
++
++static inline int
++__gthread_recursive_mutex_trylock (__gthread_recursive_mutex_t *__mutex)
++{
++  return __gthr_frtos_recursive_mutex_trylock (__mutex);
++}
++
++static inline int
++__gthread_recursive_mutex_timedlock (__gthread_recursive_mutex_t *__mutex, const __gthread_time_t *__abs)
++{
++  return __gthr_frtos_recursive_mutex_timedlock (__mutex, __abs);
++}
++
++static inline int
++__gthread_recursive_mutex_unlock (__gthread_recursive_mutex_t *__mutex)
++{
++  return __gthr_frtos_recursive_mutex_unlock (__mutex);
++}
++
++static inline int
++__gthread_cond_broadcast (__gthread_cond_t *__cond)
++{
++  return __gthr_frtos_cond_broadcast (__cond);
++}
++
++static inline int
++__gthread_cond_signal (__gthread_cond_t *__cond)
++{
++  return __gthr_frtos_cond_signal (__cond);
++}
++
++static inline int
++__gthread_cond_wait (__gthread_cond_t *__cond, __gthread_mutex_t *__mutex)
++{
++  return __gthr_frtos_cond_wait (__cond, __mutex);
++}
++
++static inline int
++__gthread_cond_wait_recursive (__gthread_cond_t *__cond, __gthread_recursive_mutex_t *__mutex)
++{
++  return __gthr_frtos_cond_wait_recursive (__cond, __mutex);
++}
++
++static inline int
++__gthread_cond_timedwait (__gthread_cond_t *__cond, __gthread_mutex_t *__mutex,
++			  const __gthread_time_t *__abs)
++{
++  return __gthr_frtos_cond_timedwait (__cond, __mutex, __abs);
++}
++
++static inline int
++__gthread_cond_destroy (__gthread_cond_t *__cond)
++{
++  return __gthr_frtos_cond_destroy (__cond);
++}
++
++#ifdef __cplusplus
++}
++#endif
++
++#endif /* ! GCC_GTHR_FREERTOS_H */
+diff -urN a/libgcc/config/t-gthr-freertos b/libgcc/config/t-gthr-freertos
+--- a/libgcc/config/t-gthr-freertos	1970-01-01 01:00:00
++++ b/libgcc/config/t-gthr-freertos	2026-06-04 17:15:20
+@@ -0,0 +1,3 @@
++# Weak single-threaded/no-op defaults for the FreeRTOS gthr model. A program
++# linking a real FreeRTOS backend (strong __gthr_frtos_* symbols) overrides them.
++LIB2ADD += $(srcdir)/config/gthr-freertos-default.c
+diff -urN a/libgcc/config.host b/libgcc/config.host
+--- a/libgcc/config.host	2026-06-04 17:13:15
++++ b/libgcc/config.host	2026-06-04 17:14:47
+@@ -1675,6 +1675,14 @@
+ 	esac
+ esac
+ 
++# The FreeRTOS gthr model ships weak single-threaded/no-op defaults so that a
++# program linking no real backend still builds and runs single-threaded.
++case ${target_thread_file} in
++freertos)
++	tmake_file="${tmake_file} t-gthr-freertos"
++	;;
++esac
++
+ case ${host} in
+ *-*-musl*)
+   # The gthr weak references are unsafe with static linking
+diff -urN a/libgcc/configure b/libgcc/configure
+--- a/libgcc/configure	2026-06-04 17:13:15
++++ b/libgcc/configure	2026-06-04 17:13:44
+@@ -5817,6 +5817,7 @@
+ case $target_thread_file in
+     aix)	thread_header=config/rs6000/gthr-aix.h ;;
+     dce)	thread_header=config/pa/gthr-dce.h ;;
++    freertos)	thread_header=config/gthr-freertos.h ;;
+     gcn)	thread_header=config/gcn/gthr-gcn.h ;;
+     lynx)	thread_header=config/gthr-lynx.h ;;
+     mipssde)	thread_header=config/mips/gthr-mipssde.h ;;
+diff -urN a/libstdc++-v3/configure b/libstdc++-v3/configure
+--- a/libstdc++-v3/configure	2026-06-04 17:13:15
++++ b/libstdc++-v3/configure	2026-06-04 17:13:49
+@@ -16382,6 +16382,7 @@
+ case $target_thread_file in
+     aix)	thread_header=config/rs6000/gthr-aix.h ;;
+     dce)	thread_header=config/pa/gthr-dce.h ;;
++    freertos)	thread_header=config/gthr-freertos.h ;;
+     gcn)	thread_header=config/gcn/gthr-gcn.h ;;
+     lynx)	thread_header=config/gthr-lynx.h ;;
+     mipssde)	thread_header=config/mips/gthr-mipssde.h ;;

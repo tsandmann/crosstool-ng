@@ -3,6 +3,7 @@
 ## depends on BARE_METAL && CONFIGURE_has_meson && CONFIGURE_has_ninja
 ## select CC_CORE_NEEDED
 ## select LIBC_SUPPORT_THREADS_NATIVE
+## select LIBC_SUPPORT_THREADS_FREERTOS
 
 ## help Picolibc is a C library intended for use on embedded systems. It is a
 ## help conglomeration of several library parts, all under BSD-compatible software

@@ -1174,6 +1174,8 @@ do_gcc_backend() {
         if [ "${CT_THREADS}" = "win32" ]; then
             extra_config+=("--enable-threads=win32")
             extra_config+=("--disable-win32-registry")
+        elif [ "${CT_THREADS}" = "freertos" ]; then
+            extra_config+=("--enable-threads=freertos")
         else
             extra_config+=("--enable-threads=posix")
         fi

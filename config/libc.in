@@ -19,6 +19,10 @@ config LIBC_SUPPORT_THREADS_POSIX
     bool
     select LIBC_SUPPORT_THREADS_ANY
 
+config LIBC_SUPPORT_THREADS_FREERTOS
+    bool
+    select LIBC_SUPPORT_THREADS_ANY
+
 config LIBC_SUPPORT_THREADS_NONE
     bool
 
@@ -28,6 +32,7 @@ config LIBC_PROVIDES_CXA_ATEXIT
 # C libraries should provide other values
 config THREADS
     string
+    default "freertos" if THREADS_FREERTOS
     default "none" if THREADS_NONE
 
 if ! LIBC_NONE
@@ -62,6 +67,20 @@ config THREADS_POSIX
     bool
     prompt "posix"
     depends on LIBC_SUPPORT_THREADS_POSIX
+
+config THREADS_FREERTOS
+    bool
+    prompt "freertos"
+    depends on LIBC_SUPPORT_THREADS_FREERTOS
+    help
+      Selects the custom FreeRTOS GCC thread model (--enable-threads=freertos).
+
+      Enables the C++ threading library (std::thread / std::jthread /
+      std::mutex / std::condition_variable / std::stop_token) backed by the
+      libgcc gthr-freertos model. The model is RTOS-agnostic: it forwards to
+      thin __gthr_frtos_* hooks that the application/BSP implements over
+      FreeRTOS. libgcc carries weak single-threaded defaults, so a program that
+      links no backend still builds and runs single-threaded.
 
 config THREADS_NONE
     bool
