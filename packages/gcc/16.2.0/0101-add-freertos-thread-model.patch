@@ -27,14 +27,14 @@ diff -urN a/gcc/config.gcc b/gcc/config.gcc
 diff -urN a/libgcc/config/gthr-freertos-default.c b/libgcc/config/gthr-freertos-default.c
 --- a/libgcc/config/gthr-freertos-default.c	1970-01-01 01:00:00
 +++ b/libgcc/config/gthr-freertos-default.c	2026-06-04 17:15:20
-@@ -0,0 +1,167 @@
+@@ -0,0 +1,179 @@
 +/* Weak single-threaded/no-op defaults for the FreeRTOS gthr model.
 +
 +   Copyright (c) 2026 Timo Sandmann. GCC Runtime Library Exception applies
 +   (this is compiled into libgcc alongside gthr-freertos.h).
 +
 +   Purpose: keep the toolchain general-purpose. A program that links a real
-+   FreeRTOS backend (strong `__gthr_frtos_*` symbols, e.g. an in-tree provided
++   FreeRTOS backend (strong `__gthr_frtos_*` symbols, e.g. the in-tree pico_gthr
 +   library) overrides every hook below. A program that links *no* backend
 +   (plain bare-metal / non-FreeRTOS) falls back to these weak defaults:
 +   `__gthr_frtos_active()` returns 0, so libstdc++ takes its single-threaded
@@ -48,157 +48,169 @@ diff -urN a/libgcc/config/gthr-freertos-default.c b/libgcc/config/gthr-freertos-
 +
 +#include <stddef.h>
 +
-+#define __gthr_weak __attribute__ ((weak))
++#define __gthr_weak __attribute__((weak))
 +
 +/* Active flag: no real threads unless a strong backend overrides this. */
-+__gthr_weak int
-+__gthr_frtos_active (void)
-+{
-+  return 0;
++__gthr_weak int __gthr_frtos_active(void) {
++    return 0;
 +}
 +
 +/* Thread lifecycle: cannot spawn without a scheduler. */
-+__gthr_weak int
-+__gthr_frtos_create (__gthread_t *__thr, void *(*__func) (void *), void *__args)
-+{
-+  (void) __thr; (void) __func; (void) __args;
-+  return -1;
++__gthr_weak int __gthr_frtos_create(__gthread_t* __thr, void* (*__func)(void*), void* __args) {
++    (void) __thr;
++    (void) __func;
++    (void) __args;
++    return -1;
 +}
 +
-+__gthr_weak int
-+__gthr_frtos_join (__gthread_t __thr, void **__value_ptr)
-+{
-+  (void) __thr; (void) __value_ptr;
-+  return -1;
++__gthr_weak int __gthr_frtos_join(__gthread_t __thr, void** __value_ptr) {
++    (void) __thr;
++    (void) __value_ptr;
++    return -1;
 +}
 +
-+__gthr_weak int
-+__gthr_frtos_detach (__gthread_t __thr)
-+{
-+  (void) __thr;
-+  return -1;
++__gthr_weak int __gthr_frtos_detach(__gthread_t __thr) {
++    (void) __thr;
++    return -1;
 +}
 +
-+__gthr_weak int
-+__gthr_frtos_equal (__gthread_t __t1, __gthread_t __t2)
-+{
-+  return __t1 == __t2;
++__gthr_weak int __gthr_frtos_equal(__gthread_t __t1, __gthread_t __t2) {
++    return __t1 == __t2;
 +}
 +
-+__gthr_weak __gthread_t
-+__gthr_frtos_self (void)
-+{
-+  return (__gthread_t) 0;
++__gthr_weak __gthread_t __gthr_frtos_self(void) {
++    return (__gthread_t) 0;
 +}
 +
-+__gthr_weak int
-+__gthr_frtos_yield (void)
-+{
-+  return 0;
++__gthr_weak int __gthr_frtos_yield(void) {
++    return 0;
 +}
 +
 +/* once: single-threaded — run the function exactly once. */
-+__gthr_weak int
-+__gthr_frtos_once (__gthread_once_t *__once, void (*__func) (void))
-+{
-+  if (__once != NULL && *__once == 0)
-+    {
-+      *__once = 1;
-+      if (__func != NULL)
-+	__func ();
++__gthr_weak int __gthr_frtos_once(__gthread_once_t* __once, void (*__func)(void)) {
++    if (__once != NULL && *__once == 0) {
++        *__once = 1;
++        if (__func != NULL)
++            __func();
 +    }
-+  return 0;
++    return 0;
 +}
 +
 +/* Thread-specific data: single-threaded => one global slot table. */
 +#ifndef __GTHR_FRTOS_DEFAULT_KEYS
 +#define __GTHR_FRTOS_DEFAULT_KEYS 16
 +#endif
-+static void *__gthr_frtos_tls[__GTHR_FRTOS_DEFAULT_KEYS];
++static void* __gthr_frtos_tls[__GTHR_FRTOS_DEFAULT_KEYS];
 +static int __gthr_frtos_next_key;
 +
-+__gthr_weak int
-+__gthr_frtos_key_create (__gthread_key_t *__key, void (*__dtor) (void *))
-+{
-+  (void) __dtor;
-+  if (__key == NULL || __gthr_frtos_next_key >= __GTHR_FRTOS_DEFAULT_KEYS)
-+    return -1;
-+  *__key = __gthr_frtos_next_key++;
-+  __gthr_frtos_tls[*__key] = NULL;
-+  return 0;
++__gthr_weak int __gthr_frtos_key_create(__gthread_key_t* __key, void (*__dtor)(void*)) {
++    (void) __dtor;
++    if (__key == NULL || __gthr_frtos_next_key >= __GTHR_FRTOS_DEFAULT_KEYS)
++        return -1;
++    *__key = __gthr_frtos_next_key++;
++    __gthr_frtos_tls[*__key] = NULL;
++    return 0;
 +}
 +
-+__gthr_weak int
-+__gthr_frtos_key_delete (__gthread_key_t __key)
-+{
-+  (void) __key;
-+  return 0;
++__gthr_weak int __gthr_frtos_key_delete(__gthread_key_t __key) {
++    (void) __key;
++    return 0;
 +}
 +
-+__gthr_weak void *
-+__gthr_frtos_getspecific (__gthread_key_t __key)
-+{
-+  if (__key < 0 || __key >= __GTHR_FRTOS_DEFAULT_KEYS)
-+    return NULL;
-+  return __gthr_frtos_tls[__key];
++__gthr_weak void* __gthr_frtos_getspecific(__gthread_key_t __key) {
++    if (__key < 0 || __key >= __GTHR_FRTOS_DEFAULT_KEYS)
++        return NULL;
++    return __gthr_frtos_tls[__key];
 +}
 +
-+__gthr_weak int
-+__gthr_frtos_setspecific (__gthread_key_t __key, const void *__ptr)
-+{
-+  if (__key < 0 || __key >= __GTHR_FRTOS_DEFAULT_KEYS)
-+    return -1;
-+  __gthr_frtos_tls[__key] = (void *) __ptr;
-+  return 0;
++__gthr_weak int __gthr_frtos_setspecific(__gthread_key_t __key, const void* __ptr) {
++    if (__key < 0 || __key >= __GTHR_FRTOS_DEFAULT_KEYS)
++        return -1;
++    /* The const is dictated by the gthr API; the slot is a plain void*. Cast via
++       __UINTPTR_TYPE__ — a direct (void*) cast trips libgcc's -Wcast-qual -Werror. */
++    __gthr_frtos_tls[__key] = (void*) (__UINTPTR_TYPE__) __ptr;
++    return 0;
 +}
 +
 +/* Mutexes: single-threaded => uncontended no-ops that always succeed. */
-+__gthr_weak int
-+__gthr_frtos_mutex_destroy (__gthread_mutex_t *__m) { (void) __m; return 0; }
-+__gthr_weak int
-+__gthr_frtos_mutex_lock (__gthread_mutex_t *__m) { (void) __m; return 0; }
-+__gthr_weak int
-+__gthr_frtos_mutex_trylock (__gthread_mutex_t *__m) { (void) __m; return 0; }
-+__gthr_weak int
-+__gthr_frtos_mutex_timedlock (__gthread_mutex_t *__m, const __gthread_time_t *__t)
-+{ (void) __m; (void) __t; return 0; }
-+__gthr_weak int
-+__gthr_frtos_mutex_unlock (__gthread_mutex_t *__m) { (void) __m; return 0; }
++__gthr_weak int __gthr_frtos_mutex_destroy(__gthread_mutex_t* __m) {
++    (void) __m;
++    return 0;
++}
++__gthr_weak int __gthr_frtos_mutex_lock(__gthread_mutex_t* __m) {
++    (void) __m;
++    return 0;
++}
++__gthr_weak int __gthr_frtos_mutex_trylock(__gthread_mutex_t* __m) {
++    (void) __m;
++    return 0;
++}
++__gthr_weak int __gthr_frtos_mutex_timedlock(__gthread_mutex_t* __m, const __gthread_time_t* __t) {
++    (void) __m;
++    (void) __t;
++    return 0;
++}
++__gthr_weak int __gthr_frtos_mutex_unlock(__gthread_mutex_t* __m) {
++    (void) __m;
++    return 0;
++}
 +
-+__gthr_weak int
-+__gthr_frtos_recursive_mutex_destroy (__gthread_recursive_mutex_t *__m) { (void) __m; return 0; }
-+__gthr_weak int
-+__gthr_frtos_recursive_mutex_lock (__gthread_recursive_mutex_t *__m) { (void) __m; return 0; }
-+__gthr_weak int
-+__gthr_frtos_recursive_mutex_trylock (__gthread_recursive_mutex_t *__m) { (void) __m; return 0; }
-+__gthr_weak int
-+__gthr_frtos_recursive_mutex_timedlock (__gthread_recursive_mutex_t *__m, const __gthread_time_t *__t)
-+{ (void) __m; (void) __t; return 0; }
-+__gthr_weak int
-+__gthr_frtos_recursive_mutex_unlock (__gthread_recursive_mutex_t *__m) { (void) __m; return 0; }
++__gthr_weak int __gthr_frtos_recursive_mutex_destroy(__gthread_recursive_mutex_t* __m) {
++    (void) __m;
++    return 0;
++}
++__gthr_weak int __gthr_frtos_recursive_mutex_lock(__gthread_recursive_mutex_t* __m) {
++    (void) __m;
++    return 0;
++}
++__gthr_weak int __gthr_frtos_recursive_mutex_trylock(__gthread_recursive_mutex_t* __m) {
++    (void) __m;
++    return 0;
++}
++__gthr_weak int __gthr_frtos_recursive_mutex_timedlock(__gthread_recursive_mutex_t* __m, const __gthread_time_t* __t) {
++    (void) __m;
++    (void) __t;
++    return 0;
++}
++__gthr_weak int __gthr_frtos_recursive_mutex_unlock(__gthread_recursive_mutex_t* __m) {
++    (void) __m;
++    return 0;
++}
 +
 +/* Condition variables: single-threaded => no waiters can exist, so wait is a
 +   logic error but we degrade to "return immediately"; signal/broadcast no-op. */
-+__gthr_weak int
-+__gthr_frtos_cond_broadcast (__gthread_cond_t *__c) { (void) __c; return 0; }
-+__gthr_weak int
-+__gthr_frtos_cond_signal (__gthread_cond_t *__c) { (void) __c; return 0; }
-+__gthr_weak int
-+__gthr_frtos_cond_wait (__gthread_cond_t *__c, __gthread_mutex_t *__m)
-+{ (void) __c; (void) __m; return 0; }
-+__gthr_weak int
-+__gthr_frtos_cond_wait_recursive (__gthread_cond_t *__c, __gthread_recursive_mutex_t *__m)
-+{ (void) __c; (void) __m; return 0; }
-+__gthr_weak int
-+__gthr_frtos_cond_timedwait (__gthread_cond_t *__c, __gthread_mutex_t *__m,
-+			     const __gthread_time_t *__t)
-+{ (void) __c; (void) __m; (void) __t; return 0; }
-+__gthr_weak int
-+__gthr_frtos_cond_destroy (__gthread_cond_t *__c) { (void) __c; return 0; }
++__gthr_weak int __gthr_frtos_cond_broadcast(__gthread_cond_t* __c) {
++    (void) __c;
++    return 0;
++}
++__gthr_weak int __gthr_frtos_cond_signal(__gthread_cond_t* __c) {
++    (void) __c;
++    return 0;
++}
++__gthr_weak int __gthr_frtos_cond_wait(__gthread_cond_t* __c, __gthread_mutex_t* __m) {
++    (void) __c;
++    (void) __m;
++    return 0;
++}
++__gthr_weak int __gthr_frtos_cond_wait_recursive(__gthread_cond_t* __c, __gthread_recursive_mutex_t* __m) {
++    (void) __c;
++    (void) __m;
++    return 0;
++}
++__gthr_weak int __gthr_frtos_cond_timedwait(__gthread_cond_t* __c, __gthread_mutex_t* __m, const __gthread_time_t* __t) {
++    (void) __c;
++    (void) __m;
++    (void) __t;
++    return 0;
++}
++__gthr_weak int __gthr_frtos_cond_destroy(__gthread_cond_t* __c) {
++    (void) __c;
++    return 0;
++}
 diff -urN a/libgcc/config/gthr-freertos.h b/libgcc/config/gthr-freertos.h
 --- a/libgcc/config/gthr-freertos.h	1970-01-01 01:00:00
 +++ b/libgcc/config/gthr-freertos.h	2026-06-04 19:30:00
-@@ -0,0 +1,289 @@
+@@ -0,0 +1,294 @@
 +/* Threads-compatibility routines for libgcc2 and libstdc++: FreeRTOS thread model.
 +
 +   Copyright (C) 1997-2026 Free Software Foundation, Inc.
@@ -225,7 +237,7 @@ diff -urN a/libgcc/config/gthr-freertos.h b/libgcc/config/gthr-freertos.h
 +#define __GTHREADS_CXX0X 1
 +#define __GTHREAD_HAS_COND 1
 +
-+#include <time.h>     /* struct timespec for __gthread_time_t (no RTOS dependency) */
++#include <time.h> /* struct timespec for __gthread_time_t (no RTOS dependency) */
 +#include <errno.h>
 +
 +#ifdef __cplusplus
@@ -234,253 +246,258 @@ diff -urN a/libgcc/config/gthr-freertos.h b/libgcc/config/gthr-freertos.h
 +
 +/* --- gthr types (opaque storage; the backend reinterprets the blobs) --------- */
 +
-+typedef void *__gthread_t;             /* backend thread-control-block pointer    */
-+typedef int   __gthread_key_t;         /* TLS key index                           */
-+typedef int   __gthread_once_t;        /* 0 = not run, see backend for run states */
++typedef void* __gthread_t; /* backend thread-control-block pointer    */
++typedef int __gthread_key_t; /* TLS key index                           */
++typedef int __gthread_once_t; /* 0 = not run, see backend for run states */
 +typedef struct timespec __gthread_time_t;
 +
-+/* Storage big enough for the backend's lazily-created handle + bookkeeping. Two
-+   pointers/longs is ample (e.g. { SemaphoreHandle_t, init-flag }). Zero-init must
-+   mean "fresh / not yet created" — the backend lazy-initialises on first use. */
-+typedef struct { long __opaque[2]; } __gthread_mutex_t;
-+typedef struct { long __opaque[2]; } __gthread_recursive_mutex_t;
-+typedef struct { long __opaque[2]; } __gthread_cond_t;
++/* Storage the backend constructs its lock object *into*, lazily on first use.
++   Zero-init must mean "fresh / not yet created".
++
++   It holds the whole object, not a handle, and that is the point: a handle would
++   have to be released, and libstdc++ never releases one here. __GTHREAD_MUTEX_INIT
++   below makes it compile the constant-initialised branch of __mutex_base, which
++   gives std::mutex a *trivial* destructor — the branch that calls
++   __gthread_mutex_destroy() is the #else. So anything the backend allocates on the
++   heap leaks for the process lifetime, once per lock site. Keeping the object
++   inline removes the allocation instead of chasing the missing destructor, and
++   keeps the constexpr std::mutex constructor.
++
++   Sizing is per target word size, because the backend the blob holds is not the
++   same one on both — and the difference is a factor of four:
++
++     32-bit target (pico_gthr on the Pico SDK, PICO_FRTOS_LW_BACKEND_PICO=1)
++       PicoSemaphore (SDK semaphore_t)                                 8
++       LWRecursiveMutex<0> (benaphore state word + owner + recursion) 16
++       + state word for the lazy construction                         20
++       => longs                                                        5   -> 8
++
++     64-bit host (POSIX port, kernel backend — no SDK semaphore exists)
++       StaticSemaphore_t                                             168
++       LWRecursiveMutexFreeRTOS                                      192
++       + state word                                                  196
++       => longs                                                       25   -> 32
++
++   8 rather than 5 on the 32-bit side is not a choice: the blob is 16-byte aligned
++   (see below), and sizeof must stay a multiple of alignof — otherwise element n of
++   an array of them would not be aligned. `long __opaque[5]` therefore *is* 32 bytes,
++   just written in a way that claims 20. 4 longs is the only smaller size the
++   alignment admits and is too small for LockSlot's 20. So the honest spelling of the
++   size the linker hands out is 8.
++
++   The SDK semaphore is a fixed 8-byte struct and cannot move with a FreeRTOSConfig.
++   The 64-bit figure can: configUSE_QUEUE_SETS adds a void* to StaticSemaphore_t and
++   configUSE_TRACE_FACILITY a UBaseType_t + uint8_t, together 28 longs — hence 32.
++   pico_gthr static_asserts the real figures either way, so a configuration that
++   outgrows the blob fails loudly at its own build rather than silently (and then
++   needs a toolchain rebuild, this header being installed into libgcc).
++
++   **A 32-bit build therefore requires the Pico backend**, i.e. pico_gthr linked
++   against platform_pico — which pico-gthr/CMakeLists.txt does unconditionally on
++   target. The kernel backend on 32 bits would need 25 longs and trips the
++   static_assert instead of silently overflowing.
++
++   Aligned to 16, and that is a performance property, not a layout one: the lock's
++   state word is a CAS target, and the exclusive monitor invalidates a reservation
++   per *reservation granule*, not per address. Two locks sharing a granule would
++   knock each other's reservation out and retry — so every one of these blobs gets
++   a granule to itself. 16 is the RP2350's granule (its datasheet: any 16-byte,
++   naturally aligned area of SRAM; lw_mutex.h carries the detail and why the CPU's
++   own CTR.ERG reads as unimplemented). The 12 bytes past LockSlot's 20 are what the
++   alignment costs — a granule per lock instead of two locks sharing one. */
++#if __SIZEOF_POINTER__ == 4
++#define __GTHREAD_MUTEX_BLOB_LONGS 8
++#else
++#define __GTHREAD_MUTEX_BLOB_LONGS 32
++#endif
++typedef struct {
++    long __opaque[__GTHREAD_MUTEX_BLOB_LONGS];
++} __attribute__((aligned(16))) __gthread_mutex_t;
++typedef struct {
++    long __opaque[__GTHREAD_MUTEX_BLOB_LONGS];
++} __attribute__((aligned(16))) __gthread_recursive_mutex_t;
++/* A condition variable owns no object at all: the blob is the head and tail of a
++   waiter queue, and each waiter's wake channel lives on its own stack. */
++typedef struct {
++    long __opaque[2];
++} __gthread_cond_t;
 +
 +#define __GTHREAD_ONCE_INIT 0
-+#define __GTHREAD_MUTEX_INIT { { 0, 0 } }
-+#define __GTHREAD_RECURSIVE_MUTEX_INIT { { 0, 0 } }
++/* { { 0 } } zero-fills the whole array, whatever its length — the blobs above are
++   32 longs, the cond one 2. */
++#define __GTHREAD_MUTEX_INIT { { 0 } }
++#define __GTHREAD_RECURSIVE_MUTEX_INIT { { 0 } }
 +#define __GTHREAD_COND_INIT { { 0, 0 } }
 +
 +/* Runtime (re-)init. Static __GTHREAD_*_INIT above is preferred by libstdc++
 +   (keeps the constexpr mutex ctor); these function forms exist because libgcc
 +   (libgcov __gcov_fork) calls __GTHREAD_MUTEX_INIT_FUNCTION unconditionally to
 +   reset a mutex in the forked child. Resetting to the zero/INIT state is exactly
-+   right for the lazy-creation model: the next lock recreates the handle. (No
-+   backend hook needed; fork never happens on the FreeRTOS target — this only has
-+   to compile for the libgcc host-profiling code.) */
++   right for the lazy-construction model: the next lock builds a fresh object in
++   the blob. Nothing is freed, and nothing needs to be — the storage is the blob
++   itself, and the child of a fork does not own the parent's kernel object anyway.
++   (No backend hook needed; fork never happens on the FreeRTOS target — this only
++   has to compile for the libgcc host-profiling code.) */
 +#define __GTHREAD_MUTEX_INIT_FUNCTION __gthread_mutex_init_function
 +#define __GTHREAD_RECURSIVE_MUTEX_INIT_FUNCTION __gthread_recursive_mutex_init_function
 +
 +/* --- application/BSP-provided hooks (weak no-op defaults live in libgcc) ------ */
 +
-+extern int  __gthr_frtos_active (void);
++extern int __gthr_frtos_active(void);
 +
-+extern int  __gthr_frtos_create (__gthread_t *, void *(*) (void *), void *);
-+extern int  __gthr_frtos_join (__gthread_t, void **);
-+extern int  __gthr_frtos_detach (__gthread_t);
-+extern int  __gthr_frtos_equal (__gthread_t, __gthread_t);
-+extern __gthread_t __gthr_frtos_self (void);
-+extern int  __gthr_frtos_yield (void);
++extern int __gthr_frtos_create(__gthread_t*, void* (*) (void*), void*);
++extern int __gthr_frtos_join(__gthread_t, void**);
++extern int __gthr_frtos_detach(__gthread_t);
++extern int __gthr_frtos_equal(__gthread_t, __gthread_t);
++extern __gthread_t __gthr_frtos_self(void);
++extern int __gthr_frtos_yield(void);
 +
-+extern int  __gthr_frtos_once (__gthread_once_t *, void (*) (void));
++extern int __gthr_frtos_once(__gthread_once_t*, void (*)(void));
 +
-+extern int  __gthr_frtos_key_create (__gthread_key_t *, void (*) (void *));
-+extern int  __gthr_frtos_key_delete (__gthread_key_t);
-+extern void *__gthr_frtos_getspecific (__gthread_key_t);
-+extern int  __gthr_frtos_setspecific (__gthread_key_t, const void *);
++extern int __gthr_frtos_key_create(__gthread_key_t*, void (*)(void*));
++extern int __gthr_frtos_key_delete(__gthread_key_t);
++extern void* __gthr_frtos_getspecific(__gthread_key_t);
++extern int __gthr_frtos_setspecific(__gthread_key_t, const void*);
 +
-+extern int  __gthr_frtos_mutex_destroy (__gthread_mutex_t *);
-+extern int  __gthr_frtos_mutex_lock (__gthread_mutex_t *);
-+extern int  __gthr_frtos_mutex_trylock (__gthread_mutex_t *);
-+extern int  __gthr_frtos_mutex_timedlock (__gthread_mutex_t *, const __gthread_time_t *);
-+extern int  __gthr_frtos_mutex_unlock (__gthread_mutex_t *);
++extern int __gthr_frtos_mutex_destroy(__gthread_mutex_t*);
++extern int __gthr_frtos_mutex_lock(__gthread_mutex_t*);
++extern int __gthr_frtos_mutex_trylock(__gthread_mutex_t*);
++extern int __gthr_frtos_mutex_timedlock(__gthread_mutex_t*, const __gthread_time_t*);
++extern int __gthr_frtos_mutex_unlock(__gthread_mutex_t*);
 +
-+extern int  __gthr_frtos_recursive_mutex_destroy (__gthread_recursive_mutex_t *);
-+extern int  __gthr_frtos_recursive_mutex_lock (__gthread_recursive_mutex_t *);
-+extern int  __gthr_frtos_recursive_mutex_trylock (__gthread_recursive_mutex_t *);
-+extern int  __gthr_frtos_recursive_mutex_timedlock (__gthread_recursive_mutex_t *, const __gthread_time_t *);
-+extern int  __gthr_frtos_recursive_mutex_unlock (__gthread_recursive_mutex_t *);
++extern int __gthr_frtos_recursive_mutex_destroy(__gthread_recursive_mutex_t*);
++extern int __gthr_frtos_recursive_mutex_lock(__gthread_recursive_mutex_t*);
++extern int __gthr_frtos_recursive_mutex_trylock(__gthread_recursive_mutex_t*);
++extern int __gthr_frtos_recursive_mutex_timedlock(__gthread_recursive_mutex_t*, const __gthread_time_t*);
++extern int __gthr_frtos_recursive_mutex_unlock(__gthread_recursive_mutex_t*);
 +
-+extern int  __gthr_frtos_cond_broadcast (__gthread_cond_t *);
-+extern int  __gthr_frtos_cond_signal (__gthread_cond_t *);
-+extern int  __gthr_frtos_cond_wait (__gthread_cond_t *, __gthread_mutex_t *);
-+extern int  __gthr_frtos_cond_wait_recursive (__gthread_cond_t *, __gthread_recursive_mutex_t *);
-+extern int  __gthr_frtos_cond_timedwait (__gthread_cond_t *, __gthread_mutex_t *, const __gthread_time_t *);
-+extern int  __gthr_frtos_cond_destroy (__gthread_cond_t *);
++extern int __gthr_frtos_cond_broadcast(__gthread_cond_t*);
++extern int __gthr_frtos_cond_signal(__gthread_cond_t*);
++extern int __gthr_frtos_cond_wait(__gthread_cond_t*, __gthread_mutex_t*);
++extern int __gthr_frtos_cond_wait_recursive(__gthread_cond_t*, __gthread_recursive_mutex_t*);
++extern int __gthr_frtos_cond_timedwait(__gthread_cond_t*, __gthread_mutex_t*, const __gthread_time_t*);
++extern int __gthr_frtos_cond_destroy(__gthread_cond_t*);
 +
 +/* --- gthr interface (thin inline forwarders) --------------------------------- */
 +
-+static inline int
-+__gthread_active_p (void)
-+{
-+  return __gthr_frtos_active ();
++static inline int __gthread_active_p(void) {
++    return __gthr_frtos_active();
 +}
 +
-+static inline int
-+__gthread_create (__gthread_t *__thr, void *(*__func) (void *), void *__args)
-+{
-+  return __gthr_frtos_create (__thr, __func, __args);
++static inline int __gthread_create(__gthread_t* __thr, void* (*__func)(void*), void* __args) {
++    return __gthr_frtos_create(__thr, __func, __args);
 +}
 +
-+static inline int
-+__gthread_join (__gthread_t __thr, void **__value_ptr)
-+{
-+  return __gthr_frtos_join (__thr, __value_ptr);
++static inline int __gthread_join(__gthread_t __thr, void** __value_ptr) {
++    return __gthr_frtos_join(__thr, __value_ptr);
 +}
 +
-+static inline int
-+__gthread_detach (__gthread_t __thr)
-+{
-+  return __gthr_frtos_detach (__thr);
++static inline int __gthread_detach(__gthread_t __thr) {
++    return __gthr_frtos_detach(__thr);
 +}
 +
-+static inline int
-+__gthread_equal (__gthread_t __t1, __gthread_t __t2)
-+{
-+  return __gthr_frtos_equal (__t1, __t2);
++static inline int __gthread_equal(__gthread_t __t1, __gthread_t __t2) {
++    return __gthr_frtos_equal(__t1, __t2);
 +}
 +
-+static inline __gthread_t
-+__gthread_self (void)
-+{
-+  return __gthr_frtos_self ();
++static inline __gthread_t __gthread_self(void) {
++    return __gthr_frtos_self();
 +}
 +
-+static inline int
-+__gthread_yield (void)
-+{
-+  return __gthr_frtos_yield ();
++static inline int __gthread_yield(void) {
++    return __gthr_frtos_yield();
 +}
 +
-+static inline int
-+__gthread_once (__gthread_once_t *__once, void (*__func) (void))
-+{
-+  return __gthr_frtos_once (__once, __func);
++static inline int __gthread_once(__gthread_once_t* __once, void (*__func)(void)) {
++    return __gthr_frtos_once(__once, __func);
 +}
 +
-+static inline int
-+__gthread_key_create (__gthread_key_t *__key, void (*__dtor) (void *))
-+{
-+  return __gthr_frtos_key_create (__key, __dtor);
++static inline int __gthread_key_create(__gthread_key_t* __key, void (*__dtor)(void*)) {
++    return __gthr_frtos_key_create(__key, __dtor);
 +}
 +
-+static inline int
-+__gthread_key_delete (__gthread_key_t __key)
-+{
-+  return __gthr_frtos_key_delete (__key);
++static inline int __gthread_key_delete(__gthread_key_t __key) {
++    return __gthr_frtos_key_delete(__key);
 +}
 +
-+static inline void *
-+__gthread_getspecific (__gthread_key_t __key)
-+{
-+  return __gthr_frtos_getspecific (__key);
++static inline void* __gthread_getspecific(__gthread_key_t __key) {
++    return __gthr_frtos_getspecific(__key);
 +}
 +
-+static inline int
-+__gthread_setspecific (__gthread_key_t __key, const void *__ptr)
-+{
-+  return __gthr_frtos_setspecific (__key, __ptr);
++static inline int __gthread_setspecific(__gthread_key_t __key, const void* __ptr) {
++    return __gthr_frtos_setspecific(__key, __ptr);
 +}
 +
-+static inline void
-+__gthread_mutex_init_function (__gthread_mutex_t *__mutex)
-+{
-+  __mutex->__opaque[0] = 0;
-+  __mutex->__opaque[1] = 0;
++static inline void __gthread_mutex_init_function(__gthread_mutex_t* __mutex) {
++    __builtin_memset(__mutex, 0, sizeof(*__mutex));
 +}
 +
-+static inline void
-+__gthread_recursive_mutex_init_function (__gthread_recursive_mutex_t *__mutex)
-+{
-+  __mutex->__opaque[0] = 0;
-+  __mutex->__opaque[1] = 0;
++static inline void __gthread_recursive_mutex_init_function(__gthread_recursive_mutex_t* __mutex) {
++    __builtin_memset(__mutex, 0, sizeof(*__mutex));
 +}
 +
-+static inline int
-+__gthread_mutex_destroy (__gthread_mutex_t *__mutex)
-+{
-+  return __gthr_frtos_mutex_destroy (__mutex);
++static inline int __gthread_mutex_destroy(__gthread_mutex_t* __mutex) {
++    return __gthr_frtos_mutex_destroy(__mutex);
 +}
 +
-+static inline int
-+__gthread_mutex_lock (__gthread_mutex_t *__mutex)
-+{
-+  return __gthr_frtos_mutex_lock (__mutex);
++static inline int __gthread_mutex_lock(__gthread_mutex_t* __mutex) {
++    return __gthr_frtos_mutex_lock(__mutex);
 +}
 +
-+static inline int
-+__gthread_mutex_trylock (__gthread_mutex_t *__mutex)
-+{
-+  return __gthr_frtos_mutex_trylock (__mutex);
++static inline int __gthread_mutex_trylock(__gthread_mutex_t* __mutex) {
++    return __gthr_frtos_mutex_trylock(__mutex);
 +}
 +
-+static inline int
-+__gthread_mutex_timedlock (__gthread_mutex_t *__mutex, const __gthread_time_t *__abs)
-+{
-+  return __gthr_frtos_mutex_timedlock (__mutex, __abs);
++static inline int __gthread_mutex_timedlock(__gthread_mutex_t* __mutex, const __gthread_time_t* __abs) {
++    return __gthr_frtos_mutex_timedlock(__mutex, __abs);
 +}
 +
-+static inline int
-+__gthread_mutex_unlock (__gthread_mutex_t *__mutex)
-+{
-+  return __gthr_frtos_mutex_unlock (__mutex);
++static inline int __gthread_mutex_unlock(__gthread_mutex_t* __mutex) {
++    return __gthr_frtos_mutex_unlock(__mutex);
 +}
 +
-+static inline int
-+__gthread_recursive_mutex_destroy (__gthread_recursive_mutex_t *__mutex)
-+{
-+  return __gthr_frtos_recursive_mutex_destroy (__mutex);
++static inline int __gthread_recursive_mutex_destroy(__gthread_recursive_mutex_t* __mutex) {
++    return __gthr_frtos_recursive_mutex_destroy(__mutex);
 +}
 +
-+static inline int
-+__gthread_recursive_mutex_lock (__gthread_recursive_mutex_t *__mutex)
-+{
-+  return __gthr_frtos_recursive_mutex_lock (__mutex);
++static inline int __gthread_recursive_mutex_lock(__gthread_recursive_mutex_t* __mutex) {
++    return __gthr_frtos_recursive_mutex_lock(__mutex);
 +}
 +
-+static inline int
-+__gthread_recursive_mutex_trylock (__gthread_recursive_mutex_t *__mutex)
-+{
-+  return __gthr_frtos_recursive_mutex_trylock (__mutex);
++static inline int __gthread_recursive_mutex_trylock(__gthread_recursive_mutex_t* __mutex) {
++    return __gthr_frtos_recursive_mutex_trylock(__mutex);
 +}
 +
-+static inline int
-+__gthread_recursive_mutex_timedlock (__gthread_recursive_mutex_t *__mutex, const __gthread_time_t *__abs)
-+{
-+  return __gthr_frtos_recursive_mutex_timedlock (__mutex, __abs);
++static inline int __gthread_recursive_mutex_timedlock(__gthread_recursive_mutex_t* __mutex, const __gthread_time_t* __abs) {
++    return __gthr_frtos_recursive_mutex_timedlock(__mutex, __abs);
 +}
 +
-+static inline int
-+__gthread_recursive_mutex_unlock (__gthread_recursive_mutex_t *__mutex)
-+{
-+  return __gthr_frtos_recursive_mutex_unlock (__mutex);
++static inline int __gthread_recursive_mutex_unlock(__gthread_recursive_mutex_t* __mutex) {
++    return __gthr_frtos_recursive_mutex_unlock(__mutex);
 +}
 +
-+static inline int
-+__gthread_cond_broadcast (__gthread_cond_t *__cond)
-+{
-+  return __gthr_frtos_cond_broadcast (__cond);
++static inline int __gthread_cond_broadcast(__gthread_cond_t* __cond) {
++    return __gthr_frtos_cond_broadcast(__cond);
 +}
 +
-+static inline int
-+__gthread_cond_signal (__gthread_cond_t *__cond)
-+{
-+  return __gthr_frtos_cond_signal (__cond);
++static inline int __gthread_cond_signal(__gthread_cond_t* __cond) {
++    return __gthr_frtos_cond_signal(__cond);
 +}
 +
-+static inline int
-+__gthread_cond_wait (__gthread_cond_t *__cond, __gthread_mutex_t *__mutex)
-+{
-+  return __gthr_frtos_cond_wait (__cond, __mutex);
++static inline int __gthread_cond_wait(__gthread_cond_t* __cond, __gthread_mutex_t* __mutex) {
++    return __gthr_frtos_cond_wait(__cond, __mutex);
 +}
 +
-+static inline int
-+__gthread_cond_wait_recursive (__gthread_cond_t *__cond, __gthread_recursive_mutex_t *__mutex)
-+{
-+  return __gthr_frtos_cond_wait_recursive (__cond, __mutex);
++static inline int __gthread_cond_wait_recursive(__gthread_cond_t* __cond, __gthread_recursive_mutex_t* __mutex) {
++    return __gthr_frtos_cond_wait_recursive(__cond, __mutex);
 +}
 +
-+static inline int
-+__gthread_cond_timedwait (__gthread_cond_t *__cond, __gthread_mutex_t *__mutex,
-+			  const __gthread_time_t *__abs)
-+{
-+  return __gthr_frtos_cond_timedwait (__cond, __mutex, __abs);
++static inline int __gthread_cond_timedwait(__gthread_cond_t* __cond, __gthread_mutex_t* __mutex, const __gthread_time_t* __abs) {
++    return __gthr_frtos_cond_timedwait(__cond, __mutex, __abs);
 +}
 +
-+static inline int
-+__gthread_cond_destroy (__gthread_cond_t *__cond)
-+{
-+  return __gthr_frtos_cond_destroy (__cond);
++static inline int __gthread_cond_destroy(__gthread_cond_t* __cond) {
++    return __gthr_frtos_cond_destroy(__cond);
 +}
 +
 +#ifdef __cplusplus
