@@ -28,6 +28,12 @@ do_picolibc_common_install() {
 IO_LL:io-long-long
     "
 
+    # Only add this option if the installed Picolibc supports it
+    if grep -q "option('newlib-nano-malloc'" "${CT_SRC_DIR}/picolibc/meson_options.txt"; then
+       yn_args="${yn_args}
+    NANO_MALLOC:newlib-nano-malloc"
+    fi
+
     for ynarg in $yn_args; do
         var="CT_LIBC_PICOLIBC_${ynarg%:*}"
         eval var=\$${var}
@@ -80,6 +86,8 @@ IO_LL:io-long-long
         local -l target_arch="${CT_TARGET_ARCH}"
         if [ "${CT_ARCH}" = "sh" ]; then
             target_arch="sh"
+        elif [ "${CT_ARCH}" = "arm" ]; then
+            target_arch="arm"
         fi
         cat << EOF > picolibc-cross.txt
 [binaries]
